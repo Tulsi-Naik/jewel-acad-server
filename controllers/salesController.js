@@ -1,4 +1,6 @@
 const Sale = require('../models/Sale');
+const Product = require('../models/Product');
+
 exports.recordSale = async (req, res) => {
   const session = await Product.startSession();
   session.startTransaction();
