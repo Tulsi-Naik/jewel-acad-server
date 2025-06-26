@@ -73,7 +73,7 @@ ledger.products = combined;
     // No existing unpaid ledger: create new
     const newLedger = new Ledger({
       customer,
-      sale,
+       sales: sale ? [sale] : [],
       products: products,
       total: markAsPaid ? 0 : Number(total),
         paid: !!markAsPaid,
