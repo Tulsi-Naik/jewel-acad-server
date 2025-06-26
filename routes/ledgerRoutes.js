@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Ledger = require('../models/Ledger');
+const {
+  markAsPaid,
+  getLedger,
+  syncLedger, // 
+} = require('../controllers/ledgerController');
 
-
+router.post('/sync', syncLedger);
 router.get('/', async (req, res) => {
   try {
-    const ledgers = await Ledger.find({ total: { $gt: 0 }, paid: false })
+    const ledgers = await Ledger.find({})
       .populate('customer')
        .populate('products')  
       .sort({ createdAt: -1 });
     if (!ledgers.length) {
-      return res.status(404).json({ message: 'No pending ledgers found' });
+      return res.status(404).json({ message: 'No ledgers found' });
     }
     res.json(ledgers);
   } catch (error) {
@@ -40,12 +45,15 @@ router.patch('/:id/pay', async (req, res) => {
       { new: true }
     );
     if (!updatedLedger) {
-      return res.status(404).json({ message: 'Ledger not found' });
-    }
-    res.json({ message: 'Ledger marked as paid', ledger: updatedLedger });
+  return res.status(404).json({ message: 'Ledger not found' });
+}
+
+res.json({ success: true, message: 'Ledger marked as paid', ledger: updatedLedger });
+
   } catch (error) {
     console.error('Ledger pay error:', error);
-    res.json({ success: true, message: 'Ledger marked as paid', ledger: updatedLedger });
+      res.status(500).json({ success: false, message: 'Server error updating ledger' });
+
   }
 });
 router.patch('/:id/partial-pay', async (req, res) => {

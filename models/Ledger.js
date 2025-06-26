@@ -12,6 +12,10 @@ const ledgerSchema = new mongoose.Schema({
       ref: 'Product',
     },
   ],
+   sales: [{ 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Sale'
+  }],
   total: {
     type: Number,
     required: true
