@@ -4,40 +4,39 @@ const Product = require('../models/Product');
 exports.getDailyReport = async (req, res) => {
   try {
     const sales = await Sale.find().populate('items.product');
-    if (!sales.length) {
-      return res.status(404).json({ message: 'No sales data found' });
-    }
     const daily = {};
+    const istOffsetMinutes = 330; // IST = UTC+5:30
+
     sales.forEach(sale => {
-const created = new Date(sale.createdAt);
-if (isNaN(created)) {
-  console.warn('Invalid createdAt date in sale:', sale._id);
-  return; // skip this sale
-}
-const istOffset = 5.5 * 60 * 60 * 1000;
-const istDate = new Date(created.getTime() + istOffset)
-  .toISOString()
-  .split('T')[0];
+      if (!sale.createdAt) return; // skip if missing
+      const createdUTC = new Date(sale.createdAt);
+      if (isNaN(createdUTC)) return;
+
+      const istTime = new Date(createdUTC.getTime() + istOffsetMinutes * 60 * 1000);
+      const istDateStr = istTime.toISOString().slice(0, 10); // format: YYYY-MM-DD
 
       const total = sale.items.reduce((sum, item) => {
-        if (item.product && item.product.price) {
+        if (item.product?.price) {
           return sum + item.product.price * item.quantity;
         }
         return sum;
       }, 0);
 
-daily[istDate] = (daily[istDate] || 0) + total;
+      daily[istDateStr] = (daily[istDateStr] || 0) + total;
     });
+
     const result = Object.entries(daily).map(([date, total]) => ({
       date,
-      total: total.toFixed(2), 
+      total: total.toFixed(2),
     }));
+
     res.json(result);
   } catch (err) {
-    console.error('Error fetching daily report:', err);
-    res.status(500).json({ message: 'Error fetching daily report', error: err.message });
+    console.error('Daily report error:', err);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
   }
 };
+
 exports.getMonthlyReport = async (req, res) => {
   try {
     const sales = await Sale.find().populate('items.product');  
