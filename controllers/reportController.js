@@ -9,10 +9,16 @@ exports.getDailyReport = async (req, res) => {
     }
     const daily = {};
     sales.forEach(sale => {
-const istOffset = 5.5 * 60 * 60 * 1000; // IST = UTC + 5.5 hrs
-const istDate = new Date(new Date(sale.createdAt).getTime() + istOffset)
+const created = new Date(sale.createdAt);
+if (isNaN(created)) {
+  console.warn('Invalid createdAt date in sale:', sale._id);
+  return; // skip this sale
+}
+const istOffset = 5.5 * 60 * 60 * 1000;
+const istDate = new Date(created.getTime() + istOffset)
   .toISOString()
   .split('T')[0];
+
       const total = sale.items.reduce((sum, item) => {
         if (item.product && item.product.price) {
           return sum + item.product.price * item.quantity;
