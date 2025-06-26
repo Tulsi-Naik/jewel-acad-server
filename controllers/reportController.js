@@ -39,28 +39,34 @@ exports.getDailyReport = async (req, res) => {
 
 exports.getMonthlyReport = async (req, res) => {
   try {
-    const sales = await Sale.find().populate('items.product');  
-    if (!sales.length) {
-      return res.status(404).json({ message: 'Nodata found' });
-    }
+    const sales = await Sale.find().populate('items.product');
     const monthly = {};
+    const istOffset = 5.5 * 60 * 60 * 1000;
+
     sales.forEach(sale => {
-const istOffset = 5.5 * 60 * 60 * 1000;
-const istMonth = new Date(new Date(sale.createdAt).getTime() + istOffset)
-  .toISOString()
-  .slice(0, 7);
+      if (!sale.createdAt) return;
+      const created = new Date(sale.createdAt);
+      if (isNaN(created)) return;
+
+      const istMonth = new Date(created.getTime() + istOffset)
+        .toISOString()
+        .slice(0, 7); // Format: YYYY-MM
+
       const total = sale.items.reduce((sum, item) => {
-        if (item.product && item.product.price) {
+        if (item.product?.price) {
           return sum + item.product.price * item.quantity;
         }
         return sum;
       }, 0);
-monthly[istMonth] = (monthly[istMonth] || 0) + total;
+
+      monthly[istMonth] = (monthly[istMonth] || 0) + total;
     });
+
     const result = Object.entries(monthly).map(([month, total]) => ({
       month,
-      total: total.toFixed(2), 
+      total: total.toFixed(2),
     }));
+
     res.json(result);
   } catch (err) {
     console.error('Error fetching monthly report:', err);
