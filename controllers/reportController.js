@@ -9,7 +9,10 @@ exports.getDailyReport = async (req, res) => {
     }
     const daily = {};
     sales.forEach(sale => {
-      const date = new Date(sale.createdAt).toISOString().split('T')[0]; 
+const istOffset = 5.5 * 60 * 60 * 1000; // IST = UTC + 5.5 hrs
+const istDate = new Date(new Date(sale.createdAt).getTime() + istOffset)
+  .toISOString()
+  .split('T')[0];
       const total = sale.items.reduce((sum, item) => {
         if (item.product && item.product.price) {
           return sum + item.product.price * item.quantity;
@@ -17,7 +20,7 @@ exports.getDailyReport = async (req, res) => {
         return sum;
       }, 0);
 
-      daily[date] = (daily[date] || 0) + total;
+daily[istDate] = (daily[istDate] || 0) + total;
     });
     const result = Object.entries(daily).map(([date, total]) => ({
       date,
@@ -37,14 +40,17 @@ exports.getMonthlyReport = async (req, res) => {
     }
     const monthly = {};
     sales.forEach(sale => {
-      const month = new Date(sale.createdAt).toISOString().slice(0, 7); 
+const istOffset = 5.5 * 60 * 60 * 1000;
+const istMonth = new Date(new Date(sale.createdAt).getTime() + istOffset)
+  .toISOString()
+  .slice(0, 7);
       const total = sale.items.reduce((sum, item) => {
         if (item.product && item.product.price) {
           return sum + item.product.price * item.quantity;
         }
         return sum;
       }, 0);
-      monthly[month] = (monthly[month] || 0) + total;
+monthly[istMonth] = (monthly[istMonth] || 0) + total;
     });
     const result = Object.entries(monthly).map(([month, total]) => ({
       month,
