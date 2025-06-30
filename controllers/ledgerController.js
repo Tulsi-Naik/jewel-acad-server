@@ -62,7 +62,7 @@ ledger.products = combined;
       ledger.total += Number(total); 
 
       if (markAsPaid) {
-        // ledger.paidAmount = ledger.total; //
+        ledger.paidAmount = ledger.total; //
         ledger.total = 0;
         ledger.paidAt = new Date();
       }
@@ -78,6 +78,7 @@ ledger.products = combined;
       products: products,
       total: markAsPaid ? 0 : Number(total),
         paid: !!markAsPaid,
+          paidAmount: markAsPaid ? Number(total) : 0, // ✅ add this
       paidAt: markAsPaid ? new Date() : undefined
     });
 
