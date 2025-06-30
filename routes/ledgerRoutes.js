@@ -39,16 +39,21 @@ router.post('/', async (req, res) => {
 });
 router.patch('/:id/pay', async (req, res) => {
   try {
-    const updatedLedger = await Ledger.findByIdAndUpdate(
-      req.params.id,
-      { paid: true, total: 0 },
-      { new: true }
-    );
-    if (!updatedLedger) {
+   const ledger = await Ledger.findById(req.params.id);
+if (!ledger) {
   return res.status(404).json({ message: 'Ledger not found' });
 }
 
+ledger.paidAmount = ledger.total; // ✅ store original amount
+ledger.total = 0;
+ledger.paid = true;
+ledger.paidAt = new Date();
+
+const updatedLedger = await ledger.save();
+
 res.json({ success: true, message: 'Ledger marked as paid', ledger: updatedLedger });
+
+
 
   } catch (error) {
     console.error('Ledger pay error:', error);
