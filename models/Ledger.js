@@ -23,6 +23,13 @@ const ledgerSchema = new mongoose.Schema({
   paid: {
     type: Boolean,
     default: false
+  },
+   paidAmount: { // 
+    type: Number,
+    default: 0
+  },
+  paidAt: { // 
+    type: Date
   }
 }, { timestamps: true });
 

@@ -61,7 +61,7 @@ ledger.products = combined;
       ledger.total += Number(total); 
 
       if (markAsPaid) {
-        ledger.paid = true;
+        ledger.paidAmount = ledger.total; //
         ledger.total = 0;
         ledger.paidAt = new Date();
       }
