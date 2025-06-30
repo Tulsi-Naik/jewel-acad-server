@@ -8,7 +8,8 @@ exports.markAsPaid = async (req, res) => {
     if (!ledger) {
       return res.status(404).json({ success: false, message: 'Ledger not found' });
     }
-
+    ledger.paidAmount = ledger.total; //  Store the amount before zeroing
+     ledger.total = 0;
     ledger.paid = true;
     ledger.paidAt = new Date(); // Optional, useful if you want to show payment history
     await ledger.save();
@@ -61,7 +62,7 @@ ledger.products = combined;
       ledger.total += Number(total); 
 
       if (markAsPaid) {
-        ledger.paidAmount = ledger.total; //
+        // ledger.paidAmount = ledger.total; //
         ledger.total = 0;
         ledger.paidAt = new Date();
       }
