@@ -65,9 +65,9 @@ exports.updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (product) {
-      product.name = req.body.name || product.name;
-      product.quantity = req.body.quantity || product.quantity;
-      product.price = req.body.price || product.price;
+      product.name = req.body.name ?? product.name;
+      product.quantity = req.body.quantity ?? product.quantity;
+      product.price = req.body.price ?? product.price;
       await product.save();
       res.json(product);
     } else {
@@ -77,6 +77,7 @@ exports.updateProduct = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
