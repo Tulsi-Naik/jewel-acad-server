@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = authConnection.model('User', userSchema, 'users');
+router.get('/ping', (req, res) => {
+  res.json({ message: 'Auth route is alive' });
+});
+
 
 router.post('/login', async (req, res) => {
   try {
