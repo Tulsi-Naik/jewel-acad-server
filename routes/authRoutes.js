@@ -12,7 +12,7 @@ const authConnection = mongoose.createConnection(process.env.MONGO_URI, {
 
 const userSchema = new mongoose.Schema({
   username: String,
-  passwordHash: String,
+  password: String,
   role: String,
   dbName: String
 });
@@ -20,14 +20,22 @@ const userSchema = new mongoose.Schema({
 const User = authConnection.model('User', userSchema, 'users');
 
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-
   try {
-    const user = await User.findOne({ username });
-    if (!user) return res.status(401).json({ message: 'Invalid username or password' });
+    console.log('Login request body:', req.body);
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) return res.status(401).json({ message: 'Invalid username or password' });
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      console.log('User not found');
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log('Password mismatch');
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
 
     const token = jwt.sign(
       { username: user.username, role: user.role, dbName: user.dbName },
@@ -35,11 +43,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1h' }
     );
 
+    console.log('Login successful');
     res.json({ token });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 module.exports = router;
