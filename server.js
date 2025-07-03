@@ -35,6 +35,10 @@ app.use('/api/sales', require('./routes/salesRoutes'));
 app.use('/api/ledger', require('./routes/ledgerRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 
+
+app.use('/api/auth', require('./routes/authRoutes'));
+
+
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
@@ -44,4 +48,4 @@ app.listen(PORT, () => {
   console.log(` Server running on ${PORT}`);
 });
 
-// Force redeploy for CORS header
+
