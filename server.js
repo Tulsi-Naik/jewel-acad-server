@@ -5,6 +5,7 @@ dotenv.config();
 const app = express();
 
 const cors = require('cors');
+const authenticateToken = require('./middleware/authMiddleware');
 
 app.use(cors({
   origin: 'https://jewellery-hub-two.vercel.app',
@@ -30,10 +31,11 @@ mongoose.connect(MONGO_URI, {
 
 
 app.use('/api/customers', require('./routes/customerRoutes'));
-app.use('/api/products', require('./routes/productRoutes'));
-app.use('/api/sales', require('./routes/salesRoutes'));
-app.use('/api/ledger', require('./routes/ledgerRoutes'));
-app.use('/api/reports', require('./routes/reportRoutes'));
+app.use('/api/sales', authenticateToken, require('./routes/salesRoutes'));
+app.use('/api/products', authenticateToken, require('./routes/productRoutes'));
+app.use('/api/ledger', authenticateToken, require('./routes/ledgerRoutes'));
+app.use('/api/reports', authenticateToken, require('./routes/reportRoutes'));
+
 
 
 app.use('/api/auth', require('./routes/authRoutes'));
