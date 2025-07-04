@@ -30,7 +30,7 @@ mongoose.connect(MONGO_URI, {
 });
 
 
-app.use('/api/customers', require('./routes/customerRoutes'));
+app.use('/api/customers', authenticateToken, require('./routes/customerRoutes'));
 app.use('/api/sales', authenticateToken, require('./routes/salesRoutes'));
 app.use('/api/products', authenticateToken, require('./routes/productRoutes'));
 app.use('/api/ledger', authenticateToken, require('./routes/ledgerRoutes'));
