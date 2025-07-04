@@ -6,6 +6,7 @@ const app = express();
 
 const cors = require('cors');
 const authenticateToken = require('./middleware/authMiddleware');
+const requireAuth = require('./middleware/authMiddleware');
 
 app.use(cors({
   origin: 'https://jewellery-hub-two.vercel.app',
@@ -39,6 +40,8 @@ app.use('/api/reports', authenticateToken, require('./routes/reportRoutes'));
 
 
 app.use('/api/auth', require('./routes/authRoutes'));
+
+app.use('/api/admin', requireAuth, require('./routes/adminRoutes'));
 
 
 app.use((req, res) => {
