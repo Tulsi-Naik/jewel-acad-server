@@ -1,7 +1,10 @@
-const Customer = require('../models/Customer');
+const getDbForUser = require('../utils/getDbForUser');
+const customerSchema = require('../models/Customer').schema;
 
 exports.getCustomers = async (req, res) => {
   try {
+    const db = getDbForUser(req.user);
+    const Customer = db.model('Customer', customerSchema);
     const customers = await Customer.find();
     res.json(customers);
   } catch (err) {
@@ -9,8 +12,11 @@ exports.getCustomers = async (req, res) => {
   }
 };
 
+
 exports.addCustomer = async (req, res) => {
   try {
+    const db = getDbForUser(req.user);
+    const Customer = db.model('Customer', customerSchema);
     const customer = new Customer(req.body);
     const saved = await customer.save();
     res.status(201).json(saved);
@@ -18,8 +24,11 @@ exports.addCustomer = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
 exports.updateCustomer = async (req, res) => {
   try {
+    const db = getDbForUser(req.user);
+    const Customer = db.model('Customer', customerSchema);
     const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -33,8 +42,11 @@ exports.updateCustomer = async (req, res) => {
   }
 };
 
+
 exports.deleteCustomer = async (req, res) => {
   try {
+    const db = getDbForUser(req.user);
+    const Customer = db.model('Customer', customerSchema);
     const deleted = await Customer.findByIdAndDelete(req.params.id);
     if (!deleted) {
       return res.status(404).json({ message: 'Customer not found' });
@@ -44,3 +56,4 @@ exports.deleteCustomer = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+

@@ -1,19 +1,24 @@
-const Sale = require('../models/Sale');
-const Product = require('../models/Product');
+const getDbForUser = require('../utils/getDbForUser');
+const saleSchema = require('../models/Sale').schema;
+const productSchema = require('../models/Product').schema;
+
 
 exports.getDailyReport = async (req, res) => {
   try {
+    const db = getDbForUser(req.user);
+    const Sale = db.model('Sale', saleSchema);
+
     const sales = await Sale.find().populate('items.product');
     const daily = {};
-    const istOffsetMinutes = 330; // IST = UTC+5:30
+    const istOffsetMinutes = 330;
 
     sales.forEach(sale => {
-      if (!sale.createdAt) return; // skip if missing
+      if (!sale.createdAt) return;
       const createdUTC = new Date(sale.createdAt);
       if (isNaN(createdUTC)) return;
 
       const istTime = new Date(createdUTC.getTime() + istOffsetMinutes * 60 * 1000);
-      const istDateStr = istTime.toISOString().slice(0, 10); // format: YYYY-MM-DD
+      const istDateStr = istTime.toISOString().slice(0, 10);
 
       const total = sale.items.reduce((sum, item) => {
         if (item.product?.price) {
@@ -39,6 +44,9 @@ exports.getDailyReport = async (req, res) => {
 
 exports.getMonthlyReport = async (req, res) => {
   try {
+    const db = getDbForUser(req.user);
+    const Sale = db.model('Sale', saleSchema);
+
     const sales = await Sale.find().populate('items.product');
     const monthly = {};
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -50,7 +58,7 @@ exports.getMonthlyReport = async (req, res) => {
 
       const istMonth = new Date(created.getTime() + istOffset)
         .toISOString()
-        .slice(0, 7); // Format: YYYY-MM
+        .slice(0, 7);
 
       const total = sale.items.reduce((sum, item) => {
         if (item.product?.price) {
@@ -73,3 +81,4 @@ exports.getMonthlyReport = async (req, res) => {
     res.status(500).json({ message: 'Error fetching monthly report', error: err.message });
   }
 };
+
