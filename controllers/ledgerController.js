@@ -7,6 +7,7 @@ const customerSchema = require('../models/Customer').schema;
 
 exports.markAsPaid = async (req, res) => {
   try {
+    
     const db = getDbForUser(req.user);
     const Ledger = db.model('Ledger', ledgerSchema);
 
@@ -32,6 +33,7 @@ exports.markAsPaid = async (req, res) => {
 
 exports.getLedger = async (req, res) => {
   try {
+        console.log(' User payload:', req.user); // 
     const db = getDbForUser(req.user);
     const Ledger = db.model('Ledger', ledgerSchema);
     const Customer = db.model('Customer', customerSchema);
