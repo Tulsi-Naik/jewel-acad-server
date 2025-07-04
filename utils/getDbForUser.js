@@ -13,10 +13,16 @@ const getDbForUser = (user) => {
     return connections[dbName];
   }
 
+  console.log(`🔌 Connecting to DB: ${dbName}`);
+
   const conn = mongoose.createConnection(process.env.MONGO_URI, {
     dbName,
     useNewUrlParser: true,
     useUnifiedTopology: true,
+  });
+
+  conn.on('error', (err) => {
+    console.error(`❌ MongoDB connection error for ${dbName}:`, err);
   });
 
   connections[dbName] = conn;
