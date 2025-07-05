@@ -59,5 +59,19 @@ router.post('/vendors', async (req, res) => {
     res.status(500).json({ message: 'Error creating vendor', error: err.message });
   }
 });
+// ❌ DELETE /api/admin/vendors/:id
+router.delete('/vendors/:id', async (req, res) => {
+  try {
+    const vendor = await User.findById(req.params.id);
+    if (!vendor || vendor.role !== 'vendor') {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    await vendor.deleteOne();
+    res.json({ message: 'Vendor deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting vendor', error: err.message });
+  }
+});
 
 module.exports = router;
