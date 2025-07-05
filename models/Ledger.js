@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const ledgerSchema = new mongoose.Schema({
+const freshLedgerSchema = new mongoose.Schema({
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Customer',
@@ -33,4 +33,4 @@ const ledgerSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = ledgerSchema; // ✅ export schema directly
+module.exports = freshLedgerSchema; // ✅ new export name to bust cache
