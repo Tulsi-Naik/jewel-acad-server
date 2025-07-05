@@ -1,5 +1,5 @@
 const getDbForUser = require('../utils/getDbForUser');
-const ledgerSchema = require('../models/Ledger'); // ✅ now this is freshLedgerSchema
+const ledgerSchema = require('../models/LedgerSchema'); // ✅ now this is freshLedgerSchema
 console.log('✅ Ledger schema loaded:', typeof ledgerSchema);
 const saleSchema = require('../models/Sale').schema;
 const productSchema = require('../models/Product').schema;
