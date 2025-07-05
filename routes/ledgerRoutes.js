@@ -21,16 +21,13 @@ router.get('/', async (req, res) => {
       .populate('products')
       .sort({ createdAt: -1 });
 
-    if (!ledgers.length) {
-      return res.status(404).json({ message: 'No ledgers found' });
-    }
-
-    res.json(ledgers);
+    res.status(200).json(ledgers); // ✅ clean and correct
   } catch (error) {
     console.error('Ledger fetch error:', error);
     res.status(500).json({ message: 'Server error fetching ledgers' });
   }
 });
+
 
 router.post('/', async (req, res) => {
   try {
