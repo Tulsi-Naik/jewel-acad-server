@@ -73,5 +73,24 @@ router.delete('/vendors/:id', async (req, res) => {
     res.status(500).json({ message: 'Error deleting vendor', error: err.message });
   }
 });
+router.put('/vendors/:id', async (req, res) => {
+  try {
+    const { username, dbName } = req.body;
+    const vendor = await User.findById(req.params.id);
+
+    if (!vendor || vendor.role !== 'vendor') {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    vendor.username = username;
+    vendor.dbName = dbName;
+    await vendor.save();
+
+    res.json({ message: 'Vendor updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating vendor', error: err.message });
+  }
+});
+
 
 module.exports = router;
