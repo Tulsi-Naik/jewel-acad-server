@@ -1,5 +1,6 @@
 const getDbForUser = require('../utils/getDbForUser');
-const ledgerSchema = require('../models/Ledger'); // ✅ no `.schema`
+const ledgerSchema = require('../models/Ledger'); // renamed to force reload
+console.log('✅ Ledger schema loaded:', typeof ledgerSchema);
 const saleSchema = require('../models/Sale').schema;
 const productSchema = require('../models/Product').schema;
 const customerSchema = require('../models/Customer').schema;
@@ -33,6 +34,8 @@ const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
 exports.getLedger = async (req, res) => {
   try {
+    console.log('🧪 Ledger model type:', typeof Ledger, Ledger?.find);
+
         console.log(' User payload:', req.user); // 
     const db = getDbForUser(req.user);
 const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
