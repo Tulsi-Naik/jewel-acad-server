@@ -12,7 +12,7 @@ const ledgerSchema = new mongoose.Schema({
       ref: 'Product',
     },
   ],
-   sales: [{ 
+  sales: [{ 
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Sale'
   }],
@@ -24,14 +24,13 @@ const ledgerSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-   paidAmount: { // 
+  paidAmount: {
     type: Number,
     default: 0
   },
-  paidAt: { // 
+  paidAt: {
     type: Date
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Ledger', ledgerSchema);
-
+module.exports = ledgerSchema; // ✅ export schema directly

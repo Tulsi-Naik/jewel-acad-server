@@ -1,5 +1,5 @@
 const getDbForUser = require('../utils/getDbForUser');
-const ledgerSchema = require('../models/Ledger').schema;
+const ledgerSchema = require('../models/Ledger'); // ✅ no `.schema`
 const saleSchema = require('../models/Sale').schema;
 const productSchema = require('../models/Product').schema;
 const customerSchema = require('../models/Customer').schema;
