@@ -91,6 +91,28 @@ router.put('/vendors/:id', async (req, res) => {
     res.status(500).json({ message: 'Error updating vendor', error: err.message });
   }
 });
+// 🔐 PUT /api/admin/vendors/:id/password
+router.put('/vendors/:id/password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
+    const vendor = await User.findById(req.params.id);
+    if (!vendor || vendor.role !== 'vendor') {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+    vendor.password = hashed;
+    await vendor.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating password', error: err.message });
+  }
+});
 
 
 module.exports = router;
