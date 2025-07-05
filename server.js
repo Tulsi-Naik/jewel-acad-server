@@ -12,7 +12,7 @@ app.use(cors({
   origin: 'https://jewellery-hub-two.vercel.app',
   credentials: true
 }));
-
+app.options('*', cors()); // ✅ Add this line right here
 
 app.use(express.json());
 const MONGO_URI = process.env.MONGO_URI;
