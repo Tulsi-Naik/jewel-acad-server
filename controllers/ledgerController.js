@@ -9,7 +9,7 @@ exports.markAsPaid = async (req, res) => {
   try {
     
     const db = getDbForUser(req.user);
-    const Ledger = db.model('Ledger', ledgerSchema);
+const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
     if (!ledger) {
@@ -35,7 +35,7 @@ exports.getLedger = async (req, res) => {
   try {
         console.log(' User payload:', req.user); // 
     const db = getDbForUser(req.user);
-    const Ledger = db.model('Ledger', ledgerSchema);
+const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
     const Customer = db.model('Customer', customerSchema);
 
     const ledgers = await Ledger.find().populate('customer');
@@ -52,7 +52,7 @@ exports.getLedger = async (req, res) => {
 exports.syncLedger = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Ledger = db.model('Ledger', ledgerSchema);
+const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
 
