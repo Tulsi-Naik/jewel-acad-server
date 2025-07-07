@@ -14,7 +14,11 @@ const userSchema = new mongoose.Schema({
   username: String,
   password: String,
   role: String,
-  dbName: String
+  dbName: String,
+  businessName: String,
+address: String,
+contact: String
+
 });
 
 const User = authConnection.model('User', userSchema, 'users');
@@ -35,8 +39,7 @@ router.get('/vendors', async (req, res) => {
 // ➕ POST /api/admin/vendors
 router.post('/vendors', async (req, res) => {
   try {
-    const { username, password, dbName } = req.body;
-    if (!username || !password || !dbName) {
+const { username, password, dbName, businessName, address, contact } = req.body;    if (!username || !password || !dbName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -46,12 +49,15 @@ router.post('/vendors', async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      password: hashed,
-      role: 'vendor',
-      dbName
-    });
+   const newUser = new User({
+  username,
+  password: hashed,
+  role: 'vendor',
+  dbName,
+  businessName,
+  address,
+  contact
+});
 
     await newUser.save();
     res.status(201).json({ message: 'Vendor created successfully' });
@@ -75,7 +81,7 @@ router.delete('/vendors/:id', async (req, res) => {
 });
 router.put('/vendors/:id', async (req, res) => {
   try {
-    const { username, dbName } = req.body;
+const { username, dbName, businessName, address, contact } = req.body;
     const vendor = await User.findById(req.params.id);
 
     if (!vendor || vendor.role !== 'vendor') {
@@ -84,6 +90,10 @@ router.put('/vendors/:id', async (req, res) => {
 
     vendor.username = username;
     vendor.dbName = dbName;
+    vendor.businessName = businessName;
+vendor.address = address;
+vendor.contact = contact;
+
     await vendor.save();
 
     res.json({ message: 'Vendor updated successfully' });

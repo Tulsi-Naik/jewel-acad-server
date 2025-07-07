@@ -14,7 +14,11 @@ const userSchema = new mongoose.Schema({
   username: String,
   password: String,
   role: String,
-  dbName: String
+  dbName: String,
+  businessName: String,
+address: String,
+contact: String
+
 });
 
 const User = authConnection.model('User', userSchema, 'users');
