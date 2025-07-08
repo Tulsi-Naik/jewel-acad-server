@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/productController.js');
-router.get('/:id/stock-history', controller.getStockHistory);
+router.get('/stock-history/:id', controller.getStockHistory);
 router.get('/', controller.getProducts);
 router.post('/', controller.addProduct);
 router.get('/barcode/:barcode', controller.getProductByBarcode);
