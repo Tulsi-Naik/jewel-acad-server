@@ -8,10 +8,21 @@ const cors = require('cors');
 const authenticateToken = require('./middleware/authMiddleware');
 const requireAuth = require('./middleware/authMiddleware');
 
+const allowedOrigins = ['https://jewellery-hub-two.vercel.app'];
+
 app.use(cors({
-  origin: 'https://jewellery-hub-two.vercel.app',
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 
 app.use(express.json());
 const MONGO_URI = process.env.MONGO_URI;
