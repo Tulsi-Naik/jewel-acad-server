@@ -136,6 +136,8 @@ const product = await Product.findById(req.params.id);
 };
 exports.getStockHistory = async (req, res) => {
   try {
+    console.log('📦 Stock history route hit for product:', req.params.id);
+
     const db = getDbForUser(req.user);
     const StockMovement = db.models.StockMovement || db.model('StockMovement', stockMovementSchema);
 
