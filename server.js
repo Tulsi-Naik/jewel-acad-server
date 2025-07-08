@@ -10,7 +10,7 @@ const requireAuth = require('./middleware/authMiddleware');
 
 app.use(cors({
   origin: 'https://jewellery-hub-two.vercel.app',
-  
+  credentials: true
 }));
 
 app.use(express.json());
