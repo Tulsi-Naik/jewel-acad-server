@@ -41,7 +41,9 @@ exports.getLedger = async (req, res) => {
 const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
     const Customer = db.model('Customer', customerSchema);
 
-    const ledgers = await Ledger.find().populate('customer');
+const ledgers = await Ledger.find()
+  .populate('customer')
+  .populate('products.product'); // ✅ populate product details
     res.json(ledgers);
   } catch (err) {
     console.error('Error fetching ledgers:', err);
@@ -55,7 +57,7 @@ const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 exports.syncLedger = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
 
@@ -66,9 +68,18 @@ const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
     let ledger = await Ledger.findOne({ customer, paid: false });
 
     if (ledger) {
-      const existingIds = ledger.products.map(p => p.toString());
-      const combined = [...new Set([...existingIds, ...products.map(String)])];
-      ledger.products = combined;
+      // Merge product quantities
+      products.forEach(newItem => {
+        const existing = ledger.products.find(p => p.product.toString() === newItem.product);
+        if (existing) {
+          existing.quantity += newItem.quantity || 1;
+        } else {
+          ledger.products.push({
+            product: newItem.product,
+            quantity: newItem.quantity || 1
+          });
+        }
+      });
 
       if (sale) {
         ledger.sales = ledger.sales || [];
@@ -82,6 +93,7 @@ const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
       if (markAsPaid) {
         ledger.paidAmount = ledger.total;
         ledger.total = 0;
+        ledger.paid = true;
         ledger.paidAt = new Date();
       }
 
@@ -89,10 +101,14 @@ const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
       return res.json({ success: true, message: 'Ledger updated', ledger });
     }
 
+    // Create new ledger
     const newLedger = new Ledger({
       customer,
       sales: sale ? [sale] : [],
-      products,
+      products: products.map(p => ({
+        product: p.product,
+        quantity: p.quantity || 1
+      })),
       total: markAsPaid ? 0 : Number(total),
       paid: !!markAsPaid,
       paidAmount: markAsPaid ? Number(total) : 0,
@@ -106,3 +122,4 @@ const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
