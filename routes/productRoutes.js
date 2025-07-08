@@ -5,6 +5,8 @@ router.get('/', controller.getProducts);
 
 router.post('/', controller.addProduct);
 router.get('/barcode/:barcode', controller.getProductByBarcode);
+router.get('/:id/stock-history', controller.getStockHistory);
+
 router.put('/:id/stock', controller.updateStock);
 router.put('/:id/stockin', controller.stockIn);
 router.put('/:id/stockout', controller.stockOut);

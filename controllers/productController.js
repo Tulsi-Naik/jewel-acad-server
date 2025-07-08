@@ -1,5 +1,6 @@
 const getDbForUser = require('../utils/getDbForUser');
 const productSchema = require('../models/Product').schema;
+const stockMovementSchema = require('../models/StockMovement').schema;
 
 exports.getProducts = async (req, res) => {
   try {
@@ -52,31 +53,55 @@ const product = await Product.findById(req.params.id);
 };
 exports.stockIn = async (req, res) => {
   try {
-const db = getDbForUser(req.user);
-const Product = db.model('Product', productSchema);
-const product = await Product.findById(req.params.id);
-    product.quantity += req.body.amount; 
+    const db = getDbForUser(req.user);
+    const Product = db.model('Product', productSchema);
+    const StockMovement = db.model('StockMovement', stockMovementSchema);
+
+    const product = await Product.findById(req.params.id);
+    product.quantity += req.body.amount;
     await product.save();
+
+    await StockMovement.create({
+      productId: product._id,
+      type: 'in',
+      quantity: req.body.amount,
+      note: req.body.note
+    });
+
     res.json(product);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
 exports.stockOut = async (req, res) => {
   try {
-const db = getDbForUser(req.user);
-const Product = db.model('Product', productSchema);
-const product = await Product.findById(req.params.id);
-    product.quantity -= req.body.amount; 
+    const db = getDbForUser(req.user);
+    const Product = db.model('Product', productSchema);
+    const StockMovement = db.model('StockMovement', stockMovementSchema);
+
+    const product = await Product.findById(req.params.id);
+    product.quantity -= req.body.amount;
+
     if (product.quantity < 0) {
       return res.status(400).json({ message: 'Not enough stock available' });
     }
+
     await product.save();
+
+    await StockMovement.create({
+      productId: product._id,
+      type: 'out',
+      quantity: req.body.amount,
+      note: req.body.note
+    });
+
     res.json(product);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
 exports.updateProduct = async (req, res) => {
   try {
 const db = getDbForUser(req.user);
