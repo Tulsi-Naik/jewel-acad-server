@@ -10,7 +10,10 @@ exports.markAsPaid = async (req, res) => {
   try {
     
     const db = getDbForUser(req.user);
-const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+if (db.models['Ledger']) {
+  delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
+}
+const Ledger = db.model('Ledger', ledgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
     if (!ledger) {
@@ -38,7 +41,10 @@ exports.getLedger = async (req, res) => {
 
         console.log(' User payload:', req.user); // 
     const db = getDbForUser(req.user);
-const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+if (db.models['Ledger']) {
+  delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
+}
+const Ledger = db.model('Ledger', ledgerSchema);
     const Customer = db.model('Customer', customerSchema);
 
 const ledgers = await Ledger.find()
@@ -57,7 +63,10 @@ const ledgers = await Ledger.find()
 exports.syncLedger = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+if (db.models['Ledger']) {
+  delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
+}
+const Ledger = db.model('Ledger', ledgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
 
