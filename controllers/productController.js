@@ -134,3 +134,14 @@ const product = await Product.findById(req.params.id);
     res.status(500).json({ message: "Error deleting product", error: err.message });
   }
 };
+exports.getStockHistory = async (req, res) => {
+  try {
+    const db = getDbForUser(req.user);
+    const StockMovement = db.models.StockMovement || db.model('StockMovement', stockMovementSchema);
+
+    const history = await StockMovement.find({ productId: req.params.id }).sort({ date: -1 });
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
