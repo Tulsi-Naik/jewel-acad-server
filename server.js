@@ -25,6 +25,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // ✅ Use same options here for preflight requests
+app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
