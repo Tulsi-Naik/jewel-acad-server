@@ -4,6 +4,8 @@ console.log('✅ Ledger schema loaded:', typeof ledgerSchema);
 const saleSchema = require('../models/Sale').schema;
 const productSchema = require('../models/Product').schema;
 const customerSchema = require('../models/Customer').schema;
+const mongoose = require('mongoose'); // ✅ REQUIRED for ObjectId
+
 exports.markAsPaid = async (req, res) => {
   try {
     
