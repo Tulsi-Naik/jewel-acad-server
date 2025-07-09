@@ -1,11 +1,9 @@
 const getDbForUser = require('../utils/getDbForUser');
-const ledgerSchema = require('../models/LedgerSchema'); // ✅ now this is freshLedgerSchema
+const freshLedgerSchema = require('../models/LedgerSchema');
 console.log('✅ Ledger schema loaded:', typeof ledgerSchema);
 const saleSchema = require('../models/Sale').schema;
 const productSchema = require('../models/Product').schema;
 const customerSchema = require('../models/Customer').schema;
-
-
 exports.markAsPaid = async (req, res) => {
   try {
     
@@ -13,7 +11,7 @@ exports.markAsPaid = async (req, res) => {
 if (db.models['Ledger']) {
   delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
 }
-const Ledger = db.model('Ledger', ledgerSchema);
+const Ledger = db.model('Ledger', freshLedgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
     if (!ledger) {
@@ -32,9 +30,6 @@ const Ledger = db.model('Ledger', ledgerSchema);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
-
-
 exports.getLedger = async (req, res) => {
   try {
     console.log('🧪 Ledger model type:', typeof Ledger, Ledger?.find);
@@ -44,7 +39,7 @@ exports.getLedger = async (req, res) => {
 if (db.models['Ledger']) {
   delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
 }
-const Ledger = db.model('Ledger', ledgerSchema);
+const Ledger = db.model('Ledger', freshLedgerSchema);
     const Customer = db.model('Customer', customerSchema);
 
 const ledgers = await Ledger.find()
@@ -57,16 +52,13 @@ const ledgers = await Ledger.find()
   }
 };
 
-
-
-
 exports.syncLedger = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
 if (db.models['Ledger']) {
   delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
 }
-const Ledger = db.model('Ledger', ledgerSchema);
+const Ledger = db.model('Ledger', freshLedgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
 
