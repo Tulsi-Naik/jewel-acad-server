@@ -16,12 +16,39 @@ router.get('/', async (req, res) => {
     const db = getDbForUser(req.user);
     const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
-    const ledgers = await Ledger.find({})
-      .populate('customer')
-.populate('products.product')
-      .sort({ createdAt: -1 });
+   const ledgers = await Ledger.find({})
+  .populate('customer')
+  .populate('products.product')
+  .sort({ createdAt: -1 });
 
-    res.status(200).json(ledgers); // ✅ clean and correct
+const grouped = {};
+
+ledgers.forEach(entry => {
+  const cust = entry.customer;
+  const custId = cust?._id?.toString?.();
+  if (!custId) return;
+
+  if (!grouped[custId]) {
+    grouped[custId] = {
+      _id: custId,
+      customer: cust,
+      entries: []
+    };
+  }
+
+  grouped[custId].entries.push({
+    _id: entry._id,
+    createdAt: entry.createdAt,
+    products: entry.products,
+    total: entry.total,
+    paid: entry.paid,
+    paidAmount: entry.paidAmount,
+    paidAt: entry.paidAt
+  });
+});
+
+res.status(200).json(Object.values(grouped));
+
   } catch (error) {
     console.error('Ledger fetch error:', error);
     res.status(500).json({ message: 'Server error fetching ledgers' });
