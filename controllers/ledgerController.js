@@ -72,17 +72,20 @@ const Ledger = db.model('Ledger', freshLedgerSchema);
 
     if (ledger) {
       // Merge product quantities
-      products.forEach(newItem => {
-        const existing = ledger.products.find(p => p.product.toString() === newItem.product);
-        if (existing) {
-          existing.quantity += newItem.quantity || 1;
-        } else {
-          ledger.products.push({
-            product: newItem.product,
-            quantity: newItem.quantity || 1
-          });
-        }
-      });
+     products.forEach(newItem => {
+const productId = mongoose.Types.ObjectId(newItem.product);
+  const existing = ledger.products.find(p => p.product.toString() === productId.toString());
+
+  if (existing) {
+    existing.quantity += newItem.quantity || 1;
+  } else {
+    ledger.products.push({
+      product: productId,
+      quantity: newItem.quantity || 1
+    });
+  }
+});
+
 
       if (sale) {
         ledger.sales = ledger.sales || [];
@@ -105,18 +108,19 @@ const Ledger = db.model('Ledger', freshLedgerSchema);
     }
 
     // Create new ledger
-    const newLedger = new Ledger({
-      customer,
-      sales: sale ? [sale] : [],
-    products: products.map(p => ({
-  product: new mongoose.Types.ObjectId(p.product),
-  quantity: p.quantity || 1
-})),
-      total: markAsPaid ? 0 : Number(total),
-      paid: !!markAsPaid,
-      paidAmount: markAsPaid ? Number(total) : 0,
-      paidAt: markAsPaid ? new Date() : undefined
-    });
+  const newLedger = new Ledger({
+  customer,
+  sales: sale ? [sale] : [],
+  products: products.map(p => ({
+product: mongoose.Types.ObjectId(p.product),
+    quantity: p.quantity || 1
+  })),
+  total: markAsPaid ? 0 : Number(total), // ✅ force numeric
+  paid: !!markAsPaid,
+  paidAmount: markAsPaid ? Number(total) : 0, // ✅ force numeric
+  paidAt: markAsPaid ? new Date() : undefined
+});
+
 
     await newLedger.save();
     return res.status(201).json({ success: true, message: 'Ledger created', ledger: newLedger });
