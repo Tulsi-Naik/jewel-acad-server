@@ -8,9 +8,10 @@ const cors = require('cors');
 const authenticateToken = require('./middleware/authMiddleware');
 const requireAuth = require('./middleware/authMiddleware');
 
+const cors = require('cors');
 const allowedOrigins = ['https://jewellery-hub-two.vercel.app'];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -21,10 +22,11 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
 
-app.options('*', cors()); // ✅ Add this line
-app.use(express.json());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // ✅ Fixed line
+
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
   console.error('MongoDB URI is not defined');
