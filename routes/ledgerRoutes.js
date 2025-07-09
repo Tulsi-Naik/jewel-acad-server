@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 
     const ledgers = await Ledger.find({})
       .populate('customer')
-      .populate('products')
+.populate('products.product')
       .sort({ createdAt: -1 });
 
     res.status(200).json(ledgers); // ✅ clean and correct
