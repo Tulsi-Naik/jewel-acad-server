@@ -8,7 +8,6 @@ const cors = require('cors');
 const authenticateToken = require('./middleware/authMiddleware');
 const requireAuth = require('./middleware/authMiddleware');
 
-const cors = require('cors');
 const allowedOrigins = ['https://jewellery-hub-two.vercel.app'];
 
 const corsOptions = {
@@ -25,7 +24,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // ✅ Fixed line
+app.options('*', cors(corsOptions)); // ✅ Use same options here for preflight requests
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
