@@ -23,7 +23,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-
+app.options('*', cors()); // ✅ Add this line
 app.use(express.json());
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
