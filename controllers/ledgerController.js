@@ -106,10 +106,10 @@ const Ledger = db.model('Ledger', freshLedgerSchema);
     const newLedger = new Ledger({
       customer,
       sales: sale ? [sale] : [],
-      products: products.map(p => ({
-        product: p.product,
-        quantity: p.quantity || 1
-      })),
+    products: products.map(p => ({
+  product: new mongoose.Types.ObjectId(p.product),
+  quantity: p.quantity || 1
+})),
       total: markAsPaid ? 0 : Number(total),
       paid: !!markAsPaid,
       paidAmount: markAsPaid ? Number(total) : 0,
