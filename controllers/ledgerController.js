@@ -73,7 +73,7 @@ const Ledger = db.model('Ledger', freshLedgerSchema);
     if (ledger) {
       // Merge product quantities
      products.forEach(newItem => {
-const productId = mongoose.Types.ObjectId(newItem.product);
+const productId = new mongoose.Types.ObjectId(newItem.product);
   const existing = ledger.products.find(p => p.product.toString() === productId.toString());
 
   if (existing) {
@@ -112,7 +112,7 @@ const productId = mongoose.Types.ObjectId(newItem.product);
   customer,
   sales: sale ? [sale] : [],
   products: products.map(p => ({
-product: mongoose.Types.ObjectId(p.product),
+product:  new mongoose.Types.ObjectId(p.product),
     quantity: p.quantity || 1
   })),
   total: markAsPaid ? 0 : Number(total), // ✅ force numeric
