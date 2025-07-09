@@ -35,18 +35,18 @@ const Ledger = db.model('Ledger', freshLedgerSchema);
 exports.getLedger = async (req, res) => {
   try {
     console.log('🧪 Ledger model type:', typeof Ledger, Ledger?.find);
+    console.log(' User payload:', req.user);
 
-        console.log(' User payload:', req.user); // 
     const db = getDbForUser(req.user);
-if (db.models['Ledger']) {
-  delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
-}
-const Ledger = db.model('Ledger', freshLedgerSchema);
-    const Customer = db.model('Customer', customerSchema);
+    if (db.models['Ledger']) {
+      delete db.models['Ledger'];
+    }
+    const Ledger = db.model('Ledger', freshLedgerSchema);
 
-const ledgers = await Ledger.find()
-  .populate('customer')
-  .populate('products.product'); // ✅ populate product details
+    const ledgers = await Ledger.find()
+      .populate('customer')
+      .populate('products.product'); // ✅ populate product details
+
     res.json(ledgers);
   } catch (err) {
     console.error('Error fetching ledgers:', err);
@@ -54,13 +54,14 @@ const ledgers = await Ledger.find()
   }
 };
 
+
 exports.syncLedger = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-if (db.models['Ledger']) {
-  delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
-}
-const Ledger = db.model('Ledger', freshLedgerSchema);
+    if (db.models['Ledger']) {
+      delete db.models['Ledger'];
+    }
+    const Ledger = db.model('Ledger', freshLedgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
 
@@ -68,59 +69,18 @@ const Ledger = db.model('Ledger', freshLedgerSchema);
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    let ledger = await Ledger.findOne({ customer, paid: false });
-
-    if (ledger) {
-      // Merge product quantities
-     products.forEach(newItem => {
-const productId = new mongoose.Types.ObjectId(newItem.product);
-  const existing = ledger.products.find(p => p.product.toString() === productId.toString());
-
-  if (existing) {
-    existing.quantity += newItem.quantity || 1;
-  } else {
-    ledger.products.push({
-      product: productId,
-      quantity: newItem.quantity || 1
+    const newLedger = new Ledger({
+      customer,
+      sales: sale ? [sale] : [],
+      products: products.map(p => ({
+        product: new mongoose.Types.ObjectId(p.product),
+        quantity: p.quantity || 1
+      })),
+      total: markAsPaid ? 0 : Number(total),
+      paid: !!markAsPaid,
+      paidAmount: markAsPaid ? Number(total) : 0,
+      paidAt: markAsPaid ? new Date() : undefined
     });
-  }
-});
-
-
-      if (sale) {
-        ledger.sales = ledger.sales || [];
-        if (!ledger.sales.includes(sale)) {
-          ledger.sales.push(sale);
-        }
-      }
-
-      ledger.total += Number(total);
-
-      if (markAsPaid) {
-        ledger.paidAmount = ledger.total;
-        ledger.total = 0;
-        ledger.paid = true;
-        ledger.paidAt = new Date();
-      }
-
-      await ledger.save();
-      return res.json({ success: true, message: 'Ledger updated', ledger });
-    }
-
-    // Create new ledger
-  const newLedger = new Ledger({
-  customer,
-  sales: sale ? [sale] : [],
-  products: products.map(p => ({
-product:  new mongoose.Types.ObjectId(p.product),
-    quantity: p.quantity || 1
-  })),
-  total: markAsPaid ? 0 : Number(total), // ✅ force numeric
-  paid: !!markAsPaid,
-  paidAmount: markAsPaid ? Number(total) : 0, // ✅ force numeric
-  paidAt: markAsPaid ? new Date() : undefined
-});
-
 
     await newLedger.save();
     return res.status(201).json({ success: true, message: 'Ledger created', ledger: newLedger });
@@ -129,4 +89,3 @@ product:  new mongoose.Types.ObjectId(p.product),
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
