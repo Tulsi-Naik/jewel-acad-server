@@ -10,15 +10,16 @@ const authConnection = mongoose.createConnection(process.env.MONGO_URI, {
   useUnifiedTopology: true
 });
 
+// ✅ Updated schema with brandFull and brandShort
 const userSchema = new mongoose.Schema({
   username: String,
   password: String,
   role: String,
   dbName: String,
-  businessName: String,
-address: String,
-contact: String
-
+  brandFull: { type: String, default: '' },
+  brandShort: { type: String, default: '' },
+  address: String,
+  contact: String
 });
 
 const User = authConnection.model('User', userSchema, 'users');
@@ -39,7 +40,8 @@ router.get('/vendors', async (req, res) => {
 // ➕ POST /api/admin/vendors
 router.post('/vendors', async (req, res) => {
   try {
-const { username, password, dbName, businessName, address, contact } = req.body;    if (!username || !password || !dbName) {
+    const { username, password, dbName, brandFull, brandShort, address, contact } = req.body;
+    if (!username || !password || !dbName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -49,15 +51,16 @@ const { username, password, dbName, businessName, address, contact } = req.body;
     }
 
     const hashed = await bcrypt.hash(password, 10);
-   const newUser = new User({
-  username,
-  password: hashed,
-  role: 'vendor',
-  dbName,
-  businessName,
-  address,
-  contact
-});
+    const newUser = new User({
+      username,
+      password: hashed,
+      role: 'vendor',
+      dbName,
+      brandFull,
+      brandShort,
+      address,
+      contact
+    });
 
     await newUser.save();
     res.status(201).json({ message: 'Vendor created successfully' });
@@ -65,6 +68,7 @@ const { username, password, dbName, businessName, address, contact } = req.body;
     res.status(500).json({ message: 'Error creating vendor', error: err.message });
   }
 });
+
 // ❌ DELETE /api/admin/vendors/:id
 router.delete('/vendors/:id', async (req, res) => {
   try {
@@ -79,9 +83,11 @@ router.delete('/vendors/:id', async (req, res) => {
     res.status(500).json({ message: 'Error deleting vendor', error: err.message });
   }
 });
+
+// ✏️ PUT /api/admin/vendors/:id
 router.put('/vendors/:id', async (req, res) => {
   try {
-const { username, dbName, businessName, address, contact } = req.body;
+    const { username, dbName, brandFull, brandShort, address, contact } = req.body;
     const vendor = await User.findById(req.params.id);
 
     if (!vendor || vendor.role !== 'vendor') {
@@ -90,9 +96,10 @@ const { username, dbName, businessName, address, contact } = req.body;
 
     vendor.username = username;
     vendor.dbName = dbName;
-    vendor.businessName = businessName;
-vendor.address = address;
-vendor.contact = contact;
+    vendor.brandFull = brandFull;
+    vendor.brandShort = brandShort;
+    vendor.address = address;
+    vendor.contact = contact;
 
     await vendor.save();
 
@@ -101,6 +108,7 @@ vendor.contact = contact;
     res.status(500).json({ message: 'Error updating vendor', error: err.message });
   }
 });
+
 // 🔐 PUT /api/admin/vendors/:id/password
 router.put('/vendors/:id/password', async (req, res) => {
   try {
@@ -123,6 +131,5 @@ router.put('/vendors/:id/password', async (req, res) => {
     res.status(500).json({ message: 'Error updating password', error: err.message });
   }
 });
-
 
 module.exports = router;
