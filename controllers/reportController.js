@@ -2,22 +2,34 @@ const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale').schema;
 const productSchema = require('../models/Product').schema;
 
-
 exports.getDailyReport = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
     const Sale = db.model('Sale', saleSchema);
-    const { date } = req.query; // format: yyyy-MM-dd
-
-    const sales = await Sale.find().populate('items.product');
-    const daily = {};
+    const { start, end } = req.query;
     const istOffsetMinutes = 330;
 
-    sales.forEach(sale => {
-      if (!sale.createdAt) return;
-      const createdUTC = new Date(sale.createdAt);
-      if (isNaN(createdUTC)) return;
+    if (!start || !end) {
+      return res.status(400).json({ message: 'Start and end date are required.' });
+    }
 
+    const startDateIST = new Date(start + 'T00:00:00');
+    const endDateIST = new Date(end + 'T23:59:59');
+
+    const startUTC = new Date(startDateIST.getTime() - istOffsetMinutes * 60 * 1000);
+    const endUTC = new Date(endDateIST.getTime() - istOffsetMinutes * 60 * 1000);
+
+    const sales = await Sale.find({
+      createdAt: {
+        $gte: startUTC,
+        $lte: endUTC,
+      },
+    }).populate('items.product');
+
+    const daily = {};
+
+    sales.forEach(sale => {
+      const createdUTC = new Date(sale.createdAt);
       const istTime = new Date(createdUTC.getTime() + istOffsetMinutes * 60 * 1000);
       const istDateStr = istTime.toISOString().slice(0, 10); // yyyy-MM-dd
 
@@ -31,22 +43,19 @@ exports.getDailyReport = async (req, res) => {
       daily[istDateStr] = (daily[istDateStr] || 0) + total;
     });
 
-    const result = Object.entries(daily).map(([d, total]) => ({
-      date: d,
+    const result = Object.entries(daily).map(([date, total]) => ({
+      date,
       total: total.toFixed(2),
     }));
 
-    // 🧠 Filter if query param `date` is provided
-    const filteredResult = date
-      ? result.filter(entry => entry.date === date)
-      : result;
-
-    res.json(filteredResult);
+    res.json(result);
   } catch (err) {
     console.error('Daily report error:', err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
   }
 };
+
+
 
 // 
 exports.getMonthlyReport = async (req, res) => {
