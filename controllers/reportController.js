@@ -48,7 +48,7 @@ exports.getDailyReport = async (req, res) => {
   }
 };
 
-
+// 
 exports.getMonthlyReport = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
