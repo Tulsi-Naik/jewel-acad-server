@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const connections = {}; // Cache for DB connections
+const connections = {}; // 
 
 const getDbForUser = (user) => {
   if (!user || !user.dbName) {
@@ -22,7 +22,7 @@ const getDbForUser = (user) => {
   });
 
   conn.on('error', (err) => {
-    console.error(`❌ MongoDB connection error for ${dbName}:`, err);
+    console.error(` MongoDB connection error for ${dbName}:`, err);
   });
 
   connections[dbName] = conn;
