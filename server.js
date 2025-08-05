@@ -11,7 +11,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 //  Allowed Frontend Origins
-const allowedOrigins = ['https://jewellery-hub-two.vercel.app'];
+const allowedOrigins = ['https://jewelbook.vercel.app'];
 
 //  CORS Configuration
 const corsOptions = {
