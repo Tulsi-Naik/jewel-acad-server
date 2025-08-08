@@ -1,5 +1,4 @@
-// backend/models/Application.js
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const applicationSchema = new mongoose.Schema({
   name: String,
@@ -10,4 +9,4 @@ const applicationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.model('Application', applicationSchema);
+module.exports = mongoose.model('Application', applicationSchema);
