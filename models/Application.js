@@ -1,3 +1,4 @@
+// backend/models/Application.js
 const mongoose = require('mongoose');
 
 const applicationSchema = new mongoose.Schema({
@@ -9,4 +10,6 @@ const applicationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Application', applicationSchema);
+// 🔥 Use 'authDB' explicitly
+const appConnection = mongoose.connection.useDb('authDB');
+module.exports = appConnection.model('Application', applicationSchema);
