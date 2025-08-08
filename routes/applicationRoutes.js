@@ -1,6 +1,6 @@
 // backend/routes/applicationRoutes.js
-import express from 'express';
-import Application from '../models/Application.js';
+const express = require('express');
+const Application = require('../models/Application');
 
 const router = express.Router();
 
@@ -16,4 +16,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
