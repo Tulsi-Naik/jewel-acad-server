@@ -12,8 +12,13 @@ const applicationSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
+  },
+  adminComment: {
+    type: String,
+    default: ''
   }
 });
+
 
 //  Use 'authDB' explicitly
 const appConnection = mongoose.connection.useDb('authDB');

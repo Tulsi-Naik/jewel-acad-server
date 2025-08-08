@@ -53,5 +53,21 @@ router.patch('/:id/status', async (req, res) => {
     res.status(500).json({ error: 'Failed to update status' });
   }
 });
+// PATCH: Update admin comment
+router.patch('/:id/comment', async (req, res) => {
+  const { adminComment } = req.body;
+
+  try {
+    const updatedApp = await Application.findByIdAndUpdate(
+      req.params.id,
+      { adminComment },
+      { new: true }
+    );
+    res.json(updatedApp);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update comment' });
+  }
+});
+
 
 module.exports = router;
