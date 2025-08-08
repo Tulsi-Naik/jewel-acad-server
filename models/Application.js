@@ -15,9 +15,6 @@ const applicationSchema = new mongoose.Schema({
   }
 });
 
-
-
-
-// 🔥 Use 'authDB' explicitly
+//  Use 'authDB' explicitly
 const appConnection = mongoose.connection.useDb('authDB');
 module.exports = appConnection.model('Application', applicationSchema);
