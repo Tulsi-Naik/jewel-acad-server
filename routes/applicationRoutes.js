@@ -34,17 +34,23 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete application' });
   }
 });
-// ✅ PATCH to mark as reviewed
-router.patch('/:id/review', async (req, res) => {
+
+// PATCH: Update status to approved or rejected
+router.patch('/:id/status', async (req, res) => {
+  const { status } = req.body;
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
   try {
-    const application = await Application.findByIdAndUpdate(
+    const updatedApp = await Application.findByIdAndUpdate(
       req.params.id,
-      { isReviewed: true },
+      { status, isReviewed: true },
       { new: true }
     );
-    res.json(application);
+    res.json(updatedApp);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update review status' });
+    res.status(500).json({ error: 'Failed to update status' });
   }
 });
 

@@ -8,8 +8,14 @@ const applicationSchema = new mongoose.Schema({
   businessName: String,
   message: String,
   createdAt: { type: Date, default: Date.now },
-  isReviewed: { type: Boolean, default: false } // NEW FIELD
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  }
 });
+
+
 
 
 // 🔥 Use 'authDB' explicitly
