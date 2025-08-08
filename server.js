@@ -65,6 +65,8 @@ app.use('/api/admin', requireAuth, require('./routes/adminRoutes'));
 
 //  Public Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/applications', require('./routes/applicationRoutes'));
+
 
 //  Catch-All for Undefined Routes
 app.use((req, res) => {
