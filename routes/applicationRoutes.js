@@ -34,5 +34,18 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete application' });
   }
 });
+// ✅ PATCH to mark as reviewed
+router.patch('/:id/review', async (req, res) => {
+  try {
+    const application = await Application.findByIdAndUpdate(
+      req.params.id,
+      { isReviewed: true },
+      { new: true }
+    );
+    res.json(application);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update review status' });
+  }
+});
 
 module.exports = router;
