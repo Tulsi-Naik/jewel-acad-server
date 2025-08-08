@@ -15,5 +15,24 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Failed to submit application' });
   }
 });
+// GET route to fetch all applications
+router.get('/', async (req, res) => {
+  try {
+    const applications = await Application.find().sort({ createdAt: -1 }); // Most recent first
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+// ✅ DELETE an application
+router.delete('/:id', async (req, res) => {
+  try {
+    await Application.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Application deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
 
 module.exports = router;

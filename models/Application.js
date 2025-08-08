@@ -7,8 +7,10 @@ const applicationSchema = new mongoose.Schema({
   phone: String,
   businessName: String,
   message: String,
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  isReviewed: { type: Boolean, default: false } // NEW FIELD
 });
+
 
 // 🔥 Use 'authDB' explicitly
 const appConnection = mongoose.connection.useDb('authDB');
