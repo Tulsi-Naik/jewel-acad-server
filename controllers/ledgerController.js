@@ -8,25 +8,22 @@ const mongoose = require('mongoose'); // ✅ REQUIRED for ObjectId
 
 exports.markAsPaid = async (req, res) => {
   try {
-    
     const db = getDbForUser(req.user);
-if (db.models['Ledger']) {
-  delete db.models['Ledger']; // 🔥 force Mongoose to reload the updated schema
-}
-const Ledger = db.model('Ledger', freshLedgerSchema);
+    if (db.models['Ledger']) delete db.models['Ledger'];
+    const Ledger = db.model('Ledger', freshLedgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
-    if (!ledger) {
-      return res.status(404).json({ success: false, message: 'Ledger not found' });
-    }
+    if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
 
-    ledger.paidAmount = ledger.total;
+    const remaining = ledger.total;
+    ledger.paidAmount += remaining;
     ledger.total = 0;
     ledger.paid = true;
     ledger.paidAt = new Date();
-    await ledger.save();
+    ledger.payments.push({ amount: remaining, method: req.body.method || 'cash' });
 
-    res.json({ success: true });
+    await ledger.save();
+    res.json({ success: true, ledger });
   } catch (err) {
     console.error('Error marking as paid:', err);
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -87,5 +84,34 @@ exports.syncLedger = async (req, res) => {
   } catch (err) {
     console.error('Sync ledger error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+exports.partialPay = async (req, res) => {
+  try {
+    const db = getDbForUser(req.user);
+    if (db.models['Ledger']) delete db.models['Ledger'];
+    const Ledger = db.model('Ledger', freshLedgerSchema);
+
+    const ledger = await Ledger.findById(req.params.id);
+    if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
+
+    const { amount, method } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount' });
+
+    ledger.paidAmount += amount;
+    ledger.total -= amount;
+    ledger.payments.push({ amount, method });
+
+    if (ledger.total <= 0) {
+      ledger.paid = true;
+      ledger.paidAt = new Date();
+      ledger.total = 0;
+    }
+
+    await ledger.save();
+    res.json({ success: true, ledger });
+  } catch (err) {
+    console.error('Error in partialPay:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
