@@ -1,12 +1,11 @@
 const getDbForUser = require('../utils/getDbForUser');
-const saleSchema = require('../models/Sale').schema;
+const { schema: saleSchema } = require('../models/Sale');
 const productSchema = require('../models/Product').schema;
 const LedgerSchema = require('../models/LedgerSchema'); // ✅ import ledger schema
 
 exports.recordSale = async (req, res) => {
   const db = getDbForUser(req.user);
-  const Sale = db.model('Sale', saleSchema);
-  const Product = db.model('Product', productSchema);
+const Sale = db.models['Sale'] || db.model('Sale', saleSchema);  const Product = db.model('Product', productSchema);
   const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema); // multi-tenant safe
 
   const session = await Product.startSession();
