@@ -1,16 +1,23 @@
 // controllers/ledgerController.js
 const getDbForUser = require('../utils/getDbForUser');
-const ledgerSchema = require('../models/LedgerSchema'); // schema only
+const ledgerSchema = require('../models/LedgerSchema');
+const customerSchema = require('../models/Customer'); // schema only
+const productSchema = require('../models/Product');   // schema only
+const saleSchema = require('../models/Sale');         // schema only
 
 // Get all ledger entries (flat)
 exports.getLedger = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
     const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+    const Customer = db.models['Customer'] || db.model('Customer', customerSchema);
+    const Product = db.models['Product'] || db.model('Product', productSchema);
+    const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
 
     const data = await Ledger.find()
       .populate('customer')
       .populate('products.product')
+      .populate('sales')
       .sort({ createdAt: -1 });
 
     res.json(data);
@@ -35,7 +42,6 @@ exports.syncLedger = async (req, res) => {
     const paidAmountToAdd = markAsPaid ? Number(total) : 0;
 
     if (ledger) {
-      // Update existing ledger
       if (sale) ledger.sales.push(sale);
       ledger.products.push(...products.map(p => ({
         product: p.product,
@@ -47,7 +53,6 @@ exports.syncLedger = async (req, res) => {
       ledger.total += Number(total);
       ledger.paidAmount += paidAmountToAdd;
     } else {
-      // Create new ledger
       ledger = new Ledger({
         customer,
         sales: sale ? [sale] : [],
@@ -127,6 +132,7 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
     const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+    const Customer = db.models['Customer'] || db.model('Customer', customerSchema);
 
     const grouped = await Ledger.aggregate([
       {
