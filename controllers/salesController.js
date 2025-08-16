@@ -1,19 +1,20 @@
 const getDbForUser = require('../utils/getDbForUser');
 const { schema: saleSchema } = require('../models/Sale');
-const productSchema = require('../models/Product').schema;
-const LedgerSchema = require('../models/LedgerSchema'); // ✅ import ledger schema
+const { schema: productSchema } = require('../models/Product');
+const LedgerSchema = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
   const db = getDbForUser(req.user);
-const Sale = db.models['Sale'] || db.model('Sale', saleSchema);  const Product = db.model('Product', productSchema);
-  const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema); // multi-tenant safe
+
+  const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
+  const Product = db.models['Product'] || db.model('Product', productSchema);
+  const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
 
   const session = await Product.startSession();
   session.startTransaction();
 
   try {
     const { customer, items } = req.body;
-
     if (!customer) return res.status(400).json({ message: 'Customer is required.' });
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'Items are required.' });
 
@@ -35,10 +36,9 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);  const Product =
     const sale = new Sale({ customer, items, totalAmount });
     const savedSale = await sale.save({ session });
 
-    // ✅ Sync ledger
+    // Sync ledger
     let ledger = await Ledger.findOne({ customer });
     if (ledger) {
-      // Update existing ledger
       ledger.sales.push(savedSale._id);
       ledger.products.push(...items.map(i => ({
         product: i.product,
@@ -49,7 +49,6 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);  const Product =
       })));
       ledger.total += totalAmount;
     } else {
-      // Create new ledger
       ledger = new Ledger({
         customer,
         sales: [savedSale._id],
@@ -77,4 +76,4 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);  const Product =
   } finally {
     session.endSession();
   }
-};//
+};
