@@ -1,21 +1,17 @@
 const getDbForUser = require('../utils/getDbForUser');
-const saleSchema = require('../models/Sale');
-const { schema: productSchema } = require('../models/Product');
-const LedgerSchema = require('../models/LedgerSchema');
+const saleSchema = require('../models/Sale'); // schema only
+const Product = require('../models/Product'); // model
+const Ledger = require('../models/LedgerSchema'); // model
 
 exports.recordSale = async (req, res) => {
-  console.log('recordSale called for user:', req.user);
-console.log('Incoming body:', req.body);
-
   let session;
   try {
     const db = getDbForUser(req.user);
 
-    // Multi-tenant models
-const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
-    const Product = db.models['Product'] || db.model('Product', productSchema);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+    // Multi-tenant Sale model
+    const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
 
+    // Reuse global Product and Ledger models
     session = await db.startSession();
     session.startTransaction();
 
@@ -24,7 +20,6 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
     if (!customer) return res.status(400).json({ message: 'Customer is required.' });
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'Items are required.' });
 
-    // Validate products & calculate total
     let totalAmount = 0;
     for (const item of items) {
       const product = await Product.findById(item.product).session(session);
@@ -47,7 +42,7 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
     const sale = new Sale({ customer, items, totalAmount });
     const savedSale = await sale.save({ session });
 
-    // Sync ledger (session-safe)
+    // Sync ledger
     let ledger = await Ledger.findOne({ customer }).session(session);
 
     const ledgerProducts = items.map(i => ({
@@ -81,9 +76,7 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
   } catch (err) {
     if (session) await session.abortTransaction();
     console.error('Error in recordSale:', err);
-     console.error('Stack trace:', err.stack);
-  console.error('Request body:', req.body)
-    res.status(500).json({ message: err.message || 'Internal server error',  error: err });
+    res.status(500).json({ message: err.message || 'Internal server error' });
   } finally {
     if (session) session.endSession();
   }
