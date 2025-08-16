@@ -1,3 +1,4 @@
+//models/LedgerSchema.js
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({

@@ -1,3 +1,4 @@
+//routes/LedgerRoutes.js
 const express = require('express');
 const router = express.Router();
 const getDbForUser = require('../utils/getDbForUser');
@@ -49,20 +50,20 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PATCH /:id/pay
 router.patch('/:id/pay', async (req, res) => {
   try {
     const db = getDbForUser(req.user);
     const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
-    if (!ledger) {
-      return res.status(404).json({ message: 'Ledger not found' });
-    }
+    if (!ledger) return res.status(404).json({ message: 'Ledger not found' });
 
+    // ✅ Full payment
     ledger.paidAmount = ledger.total;
-    ledger.total = 0;
     ledger.paid = true;
     ledger.paidAt = new Date();
+    ledger.payments.push({ amount: ledger.total, method: 'cash', date: new Date() });
 
     const updatedLedger = await ledger.save();
     res.json({ success: true, message: 'Ledger marked as paid', ledger: updatedLedger });
@@ -72,43 +73,36 @@ router.patch('/:id/pay', async (req, res) => {
   }
 });
 
+// PATCH /:id/partial-pay
 router.patch('/:id/partial-pay', async (req, res) => {
   try {
     const db = getDbForUser(req.user);
     const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
-    const ledgerId = req.params.id;
     const { amount } = req.body;
-
-    if (!amount || isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0) 
       return res.status(400).json({ success: false, message: 'Invalid amount' });
-    }
 
-    const ledger = await Ledger.findById(ledgerId);
-    if (!ledger) {
-      return res.status(404).json({ success: false, message: 'Ledger not found' });
-    }
+    const ledger = await Ledger.findById(req.params.id);
+    if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
 
-    const newTotal = ledger.total - amount;
-    if (newTotal < 0) {
-      return res.status(400).json({ success: false, message: 'Amount exceeds total' });
-    }
+    // ✅ Partial payment accumulates
+    ledger.paidAmount = (ledger.paidAmount || 0) + parseFloat(amount);
+    ledger.payments.push({ amount: parseFloat(amount), method: 'cash', date: new Date() });
 
-    ledger.total = newTotal;
-    if (newTotal === 0) {
+    if (ledger.paidAmount >= ledger.total) {
+      ledger.paidAmount = ledger.total;
       ledger.paid = true;
+      ledger.paidAt = new Date();
     }
 
     const updatedLedger = await ledger.save();
-    res.json({
-      success: true,
-      message: 'Partial payment updated',
-      ledger: updatedLedger
-    });
+    res.json({ success: true, message: 'Partial payment updated', ledger: updatedLedger });
   } catch (error) {
     console.error('Partial payment error:', error);
     res.status(500).json({ success: false, message: 'Server error processing partial payment' });
   }
 });
+
 
 module.exports = router;
