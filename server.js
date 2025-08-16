@@ -28,9 +28,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-//  Apply CORS
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // For preflight requests
+
 
 //  JSON Body Parser
 app.use(express.json());
@@ -51,6 +49,10 @@ mongoose.connect(MONGO_URI, {
   console.error('❌ MongoDB connection error:', err);
   process.exit(1);
 });
+
+//  Apply CORS
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // For preflight requests
 
 //  Middlewares
 const authenticateToken = require('./middleware/authMiddleware');
