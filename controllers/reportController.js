@@ -5,7 +5,7 @@ const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5.5 hours in ms
 
 exports.getDailyReport = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
+    const db = await getDbForUser(req.user);
     const Sale = db.models.Sale || db.model('Sale', saleSchema); // ✅ only create if not exists
 
     const { start, end } = req.query;
@@ -38,7 +38,7 @@ exports.getDailyReport = async (req, res) => {
 
 exports.getMonthlyReport = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
+    const db = await getDbForUser(req.user);
     const Sale = db.models.Sale || db.model('Sale', saleSchema);
 
     const { month } = req.query; // yyyy-MM
