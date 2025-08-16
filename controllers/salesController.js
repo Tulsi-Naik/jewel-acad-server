@@ -4,6 +4,9 @@ const { schema: productSchema } = require('../models/Product');
 const LedgerSchema = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
+  console.log('recordSale called for user:', req.user);
+console.log('Incoming body:', req.body);
+
   let session;
   try {
     const db = getDbForUser(req.user);
@@ -78,7 +81,9 @@ const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
   } catch (err) {
     if (session) await session.abortTransaction();
     console.error('Error in recordSale:', err);
-    res.status(500).json({ message: err.message || 'Internal server error' });
+     console.error('Stack trace:', err.stack);
+  console.error('Request body:', req.body)
+    res.status(500).json({ message: err.message || 'Internal server error',  error: err });
   } finally {
     if (session) session.endSession();
   }
