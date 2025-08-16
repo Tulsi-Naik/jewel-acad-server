@@ -21,25 +21,21 @@ const ledgerSchema = new mongoose.Schema({
   sales: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Sale' }],
   total: { type: Number, required: true },
   paidAmount: { type: Number, default: 0 },
-  remainingAmount: { type: Number, default: 0 }, // pre-save hook will set it
+  remainingAmount: { type: Number, default: 0 },
   status: { type: String, enum: ['Paid', 'Partial', 'Unpaid'], default: 'Unpaid' },
   payments: [paymentSchema]
 }, { timestamps: true });
 
-// ✅ Pre-save hook to calculate remainingAmount and status
+// Pre-save hook
 ledgerSchema.pre('save', function(next) {
   this.remainingAmount = this.total - this.paidAmount;
-
-  if (this.paidAmount <= 0) {
-    this.status = 'Unpaid';
-  } else if (this.paidAmount < this.total) {
-    this.status = 'Partial';
-  } else {
+  if (this.paidAmount <= 0) this.status = 'Unpaid';
+  else if (this.paidAmount < this.total) this.status = 'Partial';
+  else {
     this.status = 'Paid';
     this.remainingAmount = 0;
   }
-
   next();
 });
 
-module.exports = mongoose.model('Ledger', ledgerSchema);
+module.exports = ledgerSchema; // <-- export only schema, NOT model

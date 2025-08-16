@@ -1,13 +1,12 @@
 // controllers/ledgerController.js
 const getDbForUser = require('../utils/getDbForUser');
-const LedgerSchema = require('../models/LedgerSchema');
-const mongoose = require('mongoose');
+const ledgerSchema = require('../models/LedgerSchema'); // schema only
 
-// controllers/ledgerController.js
+// Get all ledger entries (flat)
 exports.getLedger = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const data = await Ledger.find()
       .populate('customer')
@@ -16,30 +15,27 @@ exports.getLedger = async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    console.error(err);
+    console.error('Get ledger error:', err);
     res.status(500).json({ message: 'Failed to fetch ledger', error: err.message });
   }
 };
 
-
-
+// Sync ledger (create or update)
 exports.syncLedger = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+    const db = await getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
-
     if (!customer || !products || total == null) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     let ledger = await Ledger.findOne({ customer });
-
     const paidAmountToAdd = markAsPaid ? Number(total) : 0;
 
     if (ledger) {
-      // ✅ Update existing ledger
+      // Update existing ledger
       if (sale) ledger.sales.push(sale);
       ledger.products.push(...products.map(p => ({
         product: p.product,
@@ -51,7 +47,7 @@ exports.syncLedger = async (req, res) => {
       ledger.total += Number(total);
       ledger.paidAmount += paidAmountToAdd;
     } else {
-      // ✅ Create new ledger
+      // Create new ledger
       ledger = new Ledger({
         customer,
         sales: sale ? [sale] : [],
@@ -70,18 +66,17 @@ exports.syncLedger = async (req, res) => {
 
     await ledger.save();
     res.status(201).json({ success: true, ledger });
-
   } catch (err) {
     console.error('Sync ledger error:', err);
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
 
-
+// Mark full ledger as paid
 exports.markAsPaid = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+    const db = await getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
     if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
@@ -100,10 +95,11 @@ exports.markAsPaid = async (req, res) => {
   }
 };
 
+// Partial payment
 exports.partialPay = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+    const db = await getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const { amount, method } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount' });
@@ -125,10 +121,12 @@ exports.partialPay = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+// Ledger grouped by customer
 exports.getLedgerGroupedByCustomer = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+    const db = await getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
     const grouped = await Ledger.aggregate([
       {
@@ -136,20 +134,18 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
           _id: '$customer',
           totalAmount: { $sum: '$total' },
           totalPaid: { $sum: '$paidAmount' },
-          ledgers: { $push: '$$ROOT' },
+          ledgers: { $push: '$$ROOT' }
         }
       },
       {
         $lookup: {
-          from: 'customers',  // collection name must match in MongoDB
+          from: 'customers',
           localField: '_id',
           foreignField: '_id',
           as: 'customerInfo'
         }
       },
-      {
-        $unwind: '$customerInfo'
-      },
+      { $unwind: '$customerInfo' },
       {
         $project: {
           customer: '$customerInfo',
@@ -159,7 +155,7 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
           ledgers: 1
         }
       },
-      { $sort: { 'customer.name': 1 } } // optional sorting by customer name
+      { $sort: { 'customer.name': 1 } }
     ]);
 
     res.json({ success: true, grouped });
