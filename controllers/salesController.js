@@ -7,7 +7,7 @@ const { schema: ledgerSchema } = require('../models/LedgerSchema');
 exports.recordSale = async (req, res) => {
   let session;
   try {
-    const db = getDbForUser(req.user);
+    const db = await getDbForUser(req.user);
 
     // Multi-tenant model registration
     const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
