@@ -1,4 +1,4 @@
-//models/LedgerSchema.js
+// models/LedgerSchema.js
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
@@ -7,28 +7,39 @@ const paymentSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now }
 });
 
-const freshLedgerSchema = new mongoose.Schema({
-  customer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Customer',
-    required: true
-  },
+const ledgerSchema = new mongoose.Schema({
+  customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
   products: [
     {
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-      },
-      quantity: { type: Number, required: true, default: 1 }
+      product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+      quantity: { type: Number, required: true, default: 1 },
+      price: { type: Number, required: true },
+      discount: { type: Number, default: 0 },
+      total: { type: Number, required: true }
     }
   ],
   sales: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Sale' }],
   total: { type: Number, required: true },
-  paid: { type: Boolean, default: false },
   paidAmount: { type: Number, default: 0 },
-  paidAt: { type: Date },
+  remainingAmount: { type: Number, default: 0 }, // pre-save hook will set it
+  status: { type: String, enum: ['Paid', 'Partial', 'Unpaid'], default: 'Unpaid' },
   payments: [paymentSchema]
 }, { timestamps: true });
 
-module.exports = freshLedgerSchema;
+// ✅ Pre-save hook to calculate remainingAmount and status
+ledgerSchema.pre('save', function(next) {
+  this.remainingAmount = this.total - this.paidAmount;
+
+  if (this.paidAmount <= 0) {
+    this.status = 'Unpaid';
+  } else if (this.paidAmount < this.total) {
+    this.status = 'Partial';
+  } else {
+    this.status = 'Paid';
+    this.remainingAmount = 0;
+  }
+
+  next();
+});
+
+module.exports = mongoose.model('Ledger', ledgerSchema);

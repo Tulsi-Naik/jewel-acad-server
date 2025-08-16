@@ -1,67 +1,31 @@
+// controllers/ledgerController.js
 const getDbForUser = require('../utils/getDbForUser');
-const freshLedgerSchema = require('../models/LedgerSchema');
-console.log('✅ Ledger schema loaded:', typeof ledgerSchema);
-const saleSchema = require('../models/Sale').schema;
-const productSchema = require('../models/Product').schema;
-const customerSchema = require('../models/Customer').schema;
-const mongoose = require('mongoose'); // ✅ REQUIRED for ObjectId
+const LedgerSchema = require('../models/LedgerSchema');
+const mongoose = require('mongoose');
 
-exports.markAsPaid = async (req, res) => {
-  try {
-    const db = getDbForUser(req.user);
-    if (db.models['Ledger']) delete db.models['Ledger'];
-    const Ledger = db.model('Ledger', freshLedgerSchema);
-
-    const ledger = await Ledger.findById(req.params.id);
-    if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
-
-    const remaining = ledger.total;
-    ledger.paidAmount += remaining;
-    ledger.total = 0;
-    ledger.paid = true;
-    ledger.paidAt = new Date();
-    ledger.payments.push({ amount: remaining, method: req.body.method || 'cash' });
-
-    await ledger.save();
-    res.json({ success: true, ledger });
-  } catch (err) {
-    console.error('Error marking as paid:', err);
-    res.status(500).json({ success: false, message: 'Internal server error' });
-  }
-};
 exports.getLedger = async (req, res) => {
   try {
-    console.log('🧪 Ledger model type:', typeof Ledger, Ledger?.find);
-    console.log(' User payload:', req.user);
-
     const db = getDbForUser(req.user);
-    if (db.models['Ledger']) {
-      delete db.models['Ledger'];
-    }
-    const Ledger = db.model('Ledger', freshLedgerSchema);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
 
     const ledgers = await Ledger.find()
       .populate('customer')
-      .populate('products.product'); // ✅ populate product details
+      .populate('products.product')
+      .sort({ createdAt: -1 });
 
-    res.json(ledgers);
+    res.json({ success: true, ledgers });
   } catch (err) {
     console.error('Error fetching ledgers:', err);
-    res.status(500).json({ message: 'Error fetching ledger', error: err.message });
+    res.status(500).json({ success: false, message: 'Error fetching ledger', error: err.message });
   }
 };
-
 
 exports.syncLedger = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    if (db.models['Ledger']) {
-      delete db.models['Ledger'];
-    }
-    const Ledger = db.model('Ledger', freshLedgerSchema);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
-
     if (!customer || !products || total == null) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
@@ -71,47 +35,112 @@ exports.syncLedger = async (req, res) => {
       sales: sale ? [sale] : [],
       products: products.map(p => ({
         product: new mongoose.Types.ObjectId(p.product),
-        quantity: p.quantity || 1
+        quantity: p.quantity || 1,
+        price: p.price || 0,
+        discount: p.discount || 0,
+        total: p.total || (p.price * p.quantity - p.discount)
       })),
-      total: markAsPaid ? 0 : Number(total),
-      paid: !!markAsPaid,
+      total: Number(total),
       paidAmount: markAsPaid ? Number(total) : 0,
-      paidAt: markAsPaid ? new Date() : undefined
+      status: markAsPaid ? 'Paid' : 'Unpaid',
+      payments: markAsPaid ? [{ amount: Number(total), method: 'cash', date: new Date() }] : []
     });
 
     await newLedger.save();
-    return res.status(201).json({ success: true, message: 'Ledger created', ledger: newLedger });
+    res.status(201).json({ success: true, ledger: newLedger });
   } catch (err) {
     console.error('Sync ledger error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-exports.partialPay = async (req, res) => {
+
+exports.markAsPaid = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    if (db.models['Ledger']) delete db.models['Ledger'];
-    const Ledger = db.model('Ledger', freshLedgerSchema);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
 
     const ledger = await Ledger.findById(req.params.id);
     if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
 
+    const remaining = ledger.total - ledger.paidAmount;
+    if (remaining <= 0) return res.status(400).json({ success: false, message: 'Ledger already paid' });
+
+    ledger.paidAmount += remaining;
+    ledger.payments.push({ amount: remaining, method: req.body.method || 'cash', date: new Date() });
+
+    await ledger.save();
+    res.json({ success: true, ledger });
+  } catch (err) {
+    console.error('Error marking as paid:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.partialPay = async (req, res) => {
+  try {
+    const db = getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+
     const { amount, method } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount' });
 
-    ledger.paidAmount += amount;
-    ledger.total -= amount;
-    ledger.payments.push({ amount, method });
+    const ledger = await Ledger.findById(req.params.id);
+    if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
 
-    if (ledger.total <= 0) {
-      ledger.paid = true;
-      ledger.paidAt = new Date();
-      ledger.total = 0;
-    }
+    const remaining = ledger.total - ledger.paidAmount;
+    if (remaining <= 0) return res.status(400).json({ success: false, message: 'Ledger already paid' });
+
+    const payAmount = Math.min(amount, remaining);
+    ledger.paidAmount += payAmount;
+    ledger.payments.push({ amount: payAmount, method: method || 'cash', date: new Date() });
 
     await ledger.save();
     res.json({ success: true, ledger });
   } catch (err) {
     console.error('Error in partialPay:', err);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+exports.getLedgerGroupedByCustomer = async (req, res) => {
+  try {
+    const db = getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+
+    const grouped = await Ledger.aggregate([
+      {
+        $group: {
+          _id: '$customer',
+          totalAmount: { $sum: '$total' },
+          totalPaid: { $sum: '$paidAmount' },
+          ledgers: { $push: '$$ROOT' },
+        }
+      },
+      {
+        $lookup: {
+          from: 'customers',  // collection name must match in MongoDB
+          localField: '_id',
+          foreignField: '_id',
+          as: 'customerInfo'
+        }
+      },
+      {
+        $unwind: '$customerInfo'
+      },
+      {
+        $project: {
+          customer: '$customerInfo',
+          totalAmount: 1,
+          totalPaid: 1,
+          totalUnpaid: { $subtract: ['$totalAmount', '$totalPaid'] },
+          ledgers: 1
+        }
+      },
+      { $sort: { 'customer.name': 1 } } // optional sorting by customer name
+    ]);
+
+    res.json({ success: true, grouped });
+  } catch (err) {
+    console.error('Error fetching grouped ledger:', err);
+    res.status(500).json({ success: false, message: 'Error fetching grouped ledger', error: err.message });
   }
 };
