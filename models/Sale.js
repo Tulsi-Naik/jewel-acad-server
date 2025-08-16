@@ -14,4 +14,4 @@ const saleSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true }
 }, { timestamps: true });
 
-module.exports = saleSchema; // 🔹 export only the schema
+module.exports = { schema: saleSchema }; // ✅ export as { schema }
