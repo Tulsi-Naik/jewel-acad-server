@@ -1,4 +1,3 @@
-// controllers/salesController.js
 const getDbForUser = require('../utils/getDbForUser');
 const { schema: saleSchema } = require('../models/Sale');
 const { schema: productSchema } = require('../models/Product');
@@ -7,12 +6,12 @@ const { schema: ledgerSchema } = require('../models/LedgerSchema');
 exports.recordSale = async (req, res) => {
   let session;
   try {
-    const db = await getDbForUser(req.user);
+    const db = getDbForUser(req.user); // ✅ no await
 
     // Multi-tenant model registration
-    const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
-    const Product = db.models['Product'] || db.model('Product', productSchema);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
+    const Sale = db.models.Sale || db.model('Sale', saleSchema);
+    const Product = db.models.Product || db.model('Product', productSchema);
+    const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
 
     session = await db.startSession();
     session.startTransaction();
