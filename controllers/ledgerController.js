@@ -6,16 +6,21 @@ const mongoose = require('mongoose');
 // controllers/ledgerController.js
 exports.getLedger = async (req, res) => {
   try {
+    const db = await getDbForUser(req.user);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
+
     const data = await Ledger.find()
       .populate('customer')
       .populate('products.product')
       .sort({ createdAt: -1 });
-    res.json(data); // keep flat for filtering/search
+
+    res.json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Failed to fetch ledger' });
+    res.status(500).json({ message: 'Failed to fetch ledger', error: err.message });
   }
 };
+
 
 
 exports.syncLedger = async (req, res) => {
