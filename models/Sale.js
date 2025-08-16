@@ -1,3 +1,4 @@
+// models/Sale.js
 const mongoose = require('mongoose');
 
 const saleSchema = new mongoose.Schema({
@@ -13,7 +14,4 @@ const saleSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true }
 }, { timestamps: true });
 
-module.exports = {
-  schema: saleSchema,
-  model: mongoose.model('Sale', saleSchema)
-};
+module.exports = saleSchema; // 🔹 export only the schema

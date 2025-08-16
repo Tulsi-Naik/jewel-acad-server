@@ -1,5 +1,5 @@
 const getDbForUser = require('../utils/getDbForUser');
-const { schema: saleSchema } = require('../models/Sale');
+const saleSchema = require('../models/Sale');
 const { schema: productSchema } = require('../models/Product');
 const LedgerSchema = require('../models/LedgerSchema');
 
@@ -9,7 +9,7 @@ exports.recordSale = async (req, res) => {
     const db = getDbForUser(req.user);
 
     // Multi-tenant models
-    const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
+const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
     const Product = db.models['Product'] || db.model('Product', productSchema);
     const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
 
