@@ -3,22 +3,20 @@ const getDbForUser = require('../utils/getDbForUser');
 const LedgerSchema = require('../models/LedgerSchema');
 const mongoose = require('mongoose');
 
+// controllers/ledgerController.js
 exports.getLedger = async (req, res) => {
   try {
-    const db = getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
-
-    const ledgers = await Ledger.find()
+    const data = await Ledger.find()
       .populate('customer')
       .populate('products.product')
       .sort({ createdAt: -1 });
-
-    res.json({ success: true, ledgers });
+    res.json(data); // keep flat for filtering/search
   } catch (err) {
-    console.error('Error fetching ledgers:', err);
-    res.status(500).json({ success: false, message: 'Error fetching ledger', error: err.message });
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch ledger' });
   }
 };
+
 
 exports.syncLedger = async (req, res) => {
   try {
@@ -26,33 +24,54 @@ exports.syncLedger = async (req, res) => {
     const Ledger = db.models['Ledger'] || db.model('Ledger', LedgerSchema);
 
     const { customer, sale, total, products, markAsPaid = false } = req.body;
+
     if (!customer || !products || total == null) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    const newLedger = new Ledger({
-      customer,
-      sales: sale ? [sale] : [],
-      products: products.map(p => ({
-        product: new mongoose.Types.ObjectId(p.product),
+    let ledger = await Ledger.findOne({ customer });
+
+    const paidAmountToAdd = markAsPaid ? Number(total) : 0;
+
+    if (ledger) {
+      // ✅ Update existing ledger
+      if (sale) ledger.sales.push(sale);
+      ledger.products.push(...products.map(p => ({
+        product: p.product,
         quantity: p.quantity || 1,
         price: p.price || 0,
         discount: p.discount || 0,
         total: p.total || (p.price * p.quantity - p.discount)
-      })),
-      total: Number(total),
-      paidAmount: markAsPaid ? Number(total) : 0,
-      status: markAsPaid ? 'Paid' : 'Unpaid',
-      payments: markAsPaid ? [{ amount: Number(total), method: 'cash', date: new Date() }] : []
-    });
+      })));
+      ledger.total += Number(total);
+      ledger.paidAmount += paidAmountToAdd;
+    } else {
+      // ✅ Create new ledger
+      ledger = new Ledger({
+        customer,
+        sales: sale ? [sale] : [],
+        products: products.map(p => ({
+          product: p.product,
+          quantity: p.quantity || 1,
+          price: p.price || 0,
+          discount: p.discount || 0,
+          total: p.total || (p.price * p.quantity - p.discount)
+        })),
+        total: Number(total),
+        paidAmount: paidAmountToAdd,
+        payments: markAsPaid ? [{ amount: paidAmountToAdd, method: 'cash', date: new Date() }] : []
+      });
+    }
 
-    await newLedger.save();
-    res.status(201).json({ success: true, ledger: newLedger });
+    await ledger.save();
+    res.status(201).json({ success: true, ledger });
+
   } catch (err) {
     console.error('Sync ledger error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
 
 exports.markAsPaid = async (req, res) => {
   try {
