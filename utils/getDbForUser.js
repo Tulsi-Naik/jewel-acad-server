@@ -2,16 +2,12 @@ const mongoose = require('mongoose');
 
 const connections = {}; // 
 
-const getDbForUser = (user) => {
-  if (!user || !user.dbName) {
-    throw new Error('User DB name not found in token');
-  }
+const getDbForUser = async (user) => {
+  if (!user || !user.dbName) throw new Error('User DB name not found in token');
 
   const dbName = user.dbName;
 
-  if (connections[dbName]) {
-    return connections[dbName];
-  }
+  if (connections[dbName]) return connections[dbName];
 
   console.log(`🔌 Connecting to DB: ${dbName}`);
 
@@ -21,12 +17,14 @@ const getDbForUser = (user) => {
     useUnifiedTopology: true,
   });
 
-  conn.on('error', (err) => {
-    console.error(` MongoDB connection error for ${dbName}:`, err);
+  await new Promise((resolve, reject) => {
+    conn.once('open', resolve);
+    conn.on('error', reject);
   });
 
   connections[dbName] = conn;
   return conn;
 };
+
 
 module.exports = getDbForUser;

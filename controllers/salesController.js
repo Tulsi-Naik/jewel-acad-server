@@ -1,14 +1,15 @@
+// controllers/salesController.js
 const getDbForUser = require('../utils/getDbForUser');
-const { schema: saleSchema } = require('../models/Sale');      // schema only
-const { schema: productSchema } = require('../models/Product'); // schema only
-const { schema: ledgerSchema } = require('../models/LedgerSchema'); // schema only
+const { schema: saleSchema } = require('../models/Sale');
+const { schema: productSchema } = require('../models/Product');
+const { schema: ledgerSchema } = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
   let session;
   try {
     const db = getDbForUser(req.user);
 
-    // Create multi-tenant models from the tenant DB
+    // Multi-tenant model registration
     const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
     const Product = db.models['Product'] || db.model('Product', productSchema);
     const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
@@ -46,7 +47,6 @@ exports.recordSale = async (req, res) => {
 
     // Sync ledger
     let ledger = await Ledger.findOne({ customer }).session(session);
-
     const ledgerProducts = items.map(i => ({
       product: i.product,
       quantity: i.quantity,
@@ -71,8 +71,8 @@ exports.recordSale = async (req, res) => {
     }
 
     await ledger.save({ session });
-
     await session.commitTransaction();
+
     res.status(201).json(savedSale);
 
   } catch (err) {
