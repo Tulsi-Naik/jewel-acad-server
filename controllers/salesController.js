@@ -1,17 +1,18 @@
 const getDbForUser = require('../utils/getDbForUser');
-const saleSchema = require('../models/Sale'); // schema only
-const Product = require('../models/Product'); // model
-const Ledger = require('../models/LedgerSchema'); // model
+const { schema: saleSchema } = require('../models/Sale');      // schema only
+const { schema: productSchema } = require('../models/Product'); // schema only
+const { schema: ledgerSchema } = require('../models/LedgerSchema'); // schema only
 
 exports.recordSale = async (req, res) => {
   let session;
   try {
     const db = getDbForUser(req.user);
 
-    // Multi-tenant Sale model
+    // Create multi-tenant models from the tenant DB
     const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
+    const Product = db.models['Product'] || db.model('Product', productSchema);
+    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
 
-    // Reuse global Product and Ledger models
     session = await db.startSession();
     session.startTransaction();
 
@@ -20,6 +21,7 @@ exports.recordSale = async (req, res) => {
     if (!customer) return res.status(400).json({ message: 'Customer is required.' });
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'Items are required.' });
 
+    // Validate products & calculate total
     let totalAmount = 0;
     for (const item of items) {
       const product = await Product.findById(item.product).session(session);
