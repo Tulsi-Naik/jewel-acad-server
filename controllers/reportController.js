@@ -1,62 +1,92 @@
 const getDbForUser = require('../utils/getDbForUser');
 const { schema: saleSchema } = require('../models/Sale');
 
-const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5.5 hours in ms
-
+// Daily report: [{ date: "yyyy-MM-dd", total: "123.45" }]
 exports.getDailyReport = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Sale = db.models.Sale || db.model('Sale', saleSchema); // ✅ only create if not exists
+    const Sale = db.models.Sale || db.model('Sale', saleSchema);
 
     const { start, end } = req.query;
-    if (!start || !end) return res.status(400).json({ message: 'Start and end date are required.' });
+    if (!start || !end) {
+      return res.status(400).json({ message: 'Start and end date are required.' });
+    }
 
-    const startDateIST = new Date(`${start}T00:00:00`);
-    const endDateIST = new Date(`${end}T23:59:59`);
-    const startUTC = new Date(startDateIST.getTime() - IST_OFFSET);
-    const endUTC = new Date(endDateIST.getTime() - IST_OFFSET);
+    // Build IST-aligned UTC boundaries
+    const startIST = new Date(`${start}T00:00:00+05:30`);
+    const endIST = new Date(`${end}T23:59:59.999+05:30`);
+    const startUTC = new Date(startIST.toISOString());
+    const endUTC = new Date(endIST.toISOString());
 
-    const sales = await Sale.find({
-      createdAt: { $gte: startUTC, $lte: endUTC },
-    }).populate('items.product');
+    const rows = await Sale.aggregate([
+      { $match: { createdAt: { $gte: startUTC, $lte: endUTC } } },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata"
+            }
+          },
+          total: { $sum: "$totalAmount" }
+        }
+      },
+      { $sort: { _id: 1 } },
+      { $project: { _id: 0, date: "$_id", total: { $round: ["$total", 2] } } }
+    ]);
 
-    const daily = {};
-
-    sales.forEach(sale => {
-      const istTime = new Date(sale.createdAt.getTime() + IST_OFFSET);
-      const dateStr = istTime.toISOString().slice(0, 10); // yyyy-MM-dd
-      const total = sale.items.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0);
-      daily[dateStr] = (daily[dateStr] || 0) + total;
-    });
-
-    res.json(Object.entries(daily).map(([date, total]) => ({ date, total: total.toFixed(2) })));
+    // keep output identical to your UI (string totals)
+    const data = rows.map(r => ({ date: r.date, total: r.total.toFixed(2) }));
+    res.json(data);
   } catch (err) {
     console.error('Daily report error:', err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
   }
 };
 
+// Monthly report: [{ month: "yyyy-MM", total: "123.45" }]
 exports.getMonthlyReport = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
     const Sale = db.models.Sale || db.model('Sale', saleSchema);
 
-    const { month } = req.query; // yyyy-MM
-    const sales = await Sale.find().populate('items.product');
+    const { month } = req.query; // optional "yyyy-MM"
+    let matchStage = {};
 
-    const monthly = {};
-    sales.forEach(sale => {
-      const istMonth = new Date(sale.createdAt.getTime() + IST_OFFSET)
-        .toISOString()
-        .slice(0, 7); // yyyy-MM
-      const total = sale.items.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0);
-      monthly[istMonth] = (monthly[istMonth] || 0) + total;
-    });
+    if (month) {
+      // Boundaries for the specific IST month
+      const [yStr, mStr] = month.split('-');
+      const year = Number(yStr);
+      const monthIdx = Number(mStr) - 1; // JS months 0–11
+      const startIST = new Date(Date.UTC(year, monthIdx, 1, -5, -30)); // 00:00 IST
+      const nextMonth = monthIdx === 11 ? { y: year + 1, m: 0 } : { y: year, m: monthIdx + 1 };
+      const nextStartIST = new Date(Date.UTC(nextMonth.y, nextMonth.m, 1, -5, -30)); // next month 00:00 IST
+      const startUTC = new Date(startIST.toISOString());
+      const endUTC = new Date(nextStartIST.toISOString());
+      matchStage = { createdAt: { $gte: startUTC, $lt: endUTC } };
+    }
 
-    let result = Object.entries(monthly).map(([m, total]) => ({ month: m, total: total.toFixed(2) }));
-    if (month) result = result.filter(r => r.month === month);
+    const rows = await Sale.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata"
+            }
+          },
+          total: { $sum: "$totalAmount" }
+        }
+      },
+      { $sort: { _id: 1 } },
+      { $project: { _id: 0, month: "$_id", total: { $round: ["$total", 2] } } }
+    ]);
 
-    res.json(result);
+    const data = rows.map(r => ({ month: r.month, total: r.total.toFixed(2) }));
+    res.json(data);
   } catch (err) {
     console.error('Monthly report error:', err);
     res.status(500).json({ message: 'Error fetching monthly report', error: err.message });
