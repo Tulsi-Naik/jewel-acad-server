@@ -66,8 +66,11 @@ app.use('/api/ledger', authenticateToken, require('./routes/ledgerRoutes'));
 app.use('/api/reports', authenticateToken, require('./routes/reportRoutes'));
 app.use('/api/admin', authenticateToken, require('./routes/adminRoutes'));
 
-// Public Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+
+// Public Routes (auth) with explicit CORS
+const authRoutes = require('./routes/authRoutes');
+app.options('/api/auth/*', cors(corsOptions)); // handle preflight
+app.use('/api/auth', cors(corsOptions), authRoutes);
 app.use('/api/applications', require('./routes/applicationRoutes'));
 
 // Catch-all
