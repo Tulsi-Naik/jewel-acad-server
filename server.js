@@ -17,7 +17,6 @@ const allowedOrigins = ['https://jewelbook.vercel.app', 'http://localhost:3000']
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps, curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -30,9 +29,9 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Apply CORS
+// Apply global CORS
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // preflight
+app.options('*', cors(corsOptions)); // preflight for all routes
 
 // JSON parser
 app.use(express.json());
@@ -45,10 +44,7 @@ if (!MONGO_URI) {
 }
 
 mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => {
     console.error('❌ MongoDB connection error:', err);
@@ -66,10 +62,9 @@ app.use('/api/ledger', authenticateToken, require('./routes/ledgerRoutes'));
 app.use('/api/reports', authenticateToken, require('./routes/reportRoutes'));
 app.use('/api/admin', authenticateToken, require('./routes/adminRoutes'));
 
-
-// Public Routes (auth) with explicit CORS
+// Public Routes
 const authRoutes = require('./routes/authRoutes');
-app.options('/api/auth/*', cors(corsOptions)); // handle preflight
+app.options('/api/auth/*', cors(corsOptions)); // handle preflight explicitly for auth
 app.use('/api/auth', cors(corsOptions), authRoutes);
 app.use('/api/applications', require('./routes/applicationRoutes'));
 
