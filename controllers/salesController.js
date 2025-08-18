@@ -1,14 +1,8 @@
-const getDbForUser = require('../utils/getDbForUser');
-const { schema: saleSchema } = require('../models/Sale');
-const { schema: productSchema } = require('../models/Product');
-const { schema: ledgerSchema } = require('../models/LedgerSchema');
-
 exports.recordSale = async (req, res) => {
   let session;
   try {
-    const db = getDbForUser(req.user); // ✅ no await
+    const db = getDbForUser(req.user);
 
-    // Multi-tenant model registration
     const Sale = db.models.Sale || db.model('Sale', saleSchema);
     const Product = db.models.Product || db.model('Product', productSchema);
     const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
@@ -21,14 +15,29 @@ exports.recordSale = async (req, res) => {
     if (!customer) return res.status(400).json({ message: 'Customer is required.' });
     if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'Items are required.' });
 
-    // Validate products & calculate total
     let totalAmount = 0;
+    const processedItems = [];
+
+    // Validate products & calculate total with priceAtSale
     for (const item of items) {
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
       if (item.quantity <= 0) throw new Error(`Invalid quantity for ${product.name}`);
       if (product.quantity < item.quantity) throw new Error(`Not enough stock for ${product.name}`);
-      totalAmount += product.price * item.quantity;
+
+      const priceAtSale = product.price;
+      const discount = item.discount || 0;
+      const discountAmount = (discount / 100) * priceAtSale;
+
+      processedItems.push({
+        product: item.product,
+        quantity: item.quantity,
+        priceAtSale,
+        discount,
+        discountAmount
+      });
+
+      totalAmount += (priceAtSale - discountAmount) * item.quantity;
     }
 
     // Deduct stock
@@ -40,18 +49,18 @@ exports.recordSale = async (req, res) => {
       );
     }
 
-    // Save sale
-    const sale = new Sale({ customer, items, totalAmount });
+    // Save sale with enriched items
+    const sale = new Sale({ customer, items: processedItems, totalAmount });
     const savedSale = await sale.save({ session });
 
     // Sync ledger
     let ledger = await Ledger.findOne({ customer }).session(session);
-    const ledgerProducts = items.map(i => ({
+    const ledgerProducts = processedItems.map(i => ({
       product: i.product,
       quantity: i.quantity,
-      price: i.price || 0,
-      discount: i.discount || 0,
-      total: i.quantity * (i.price || 0) - (i.discount || 0)
+      price: i.priceAtSale,
+      discount: i.discount,
+      total: (i.priceAtSale - i.discountAmount) * i.quantity
     }));
 
     if (ledger) {

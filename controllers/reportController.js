@@ -93,19 +93,26 @@ exports.getMonthlyReport = async (req, res) => {
     res.status(500).json({ message: 'Error fetching monthly report', error: err.message });
   }
 };//
-// Top Products: [{ productName, quantity, revenue }]
-exports.getTopProducts = async (req, res) => {
+// get top products
+const getTopProducts = async (req, res) => {
   try {
-    const db = await getDbForUser(req.user);
-    const Sale = db.models.Sale || db.model('Sale', saleSchema);
+    const db = await getDbForUser(req.user); 
+    const Sale = db.models.Sale;
 
-    const rows = await Sale.aggregate([
+    const topProducts = await Sale.aggregate([
       { $unwind: "$items" },
       {
         $group: {
           _id: "$items.product",
           quantity: { $sum: "$items.quantity" },
-          revenue: { $sum: { $multiply: ["$items.quantity", "$items.priceAtSale"] } }
+          revenue: {
+            $sum: {
+              $multiply: [
+                "$items.quantity",
+                { $subtract: ["$items.priceAtSale", "$items.discountAmount"] }
+              ]
+            }
+          }
         }
       },
       {
@@ -117,7 +124,6 @@ exports.getTopProducts = async (req, res) => {
         }
       },
       { $unwind: "$product" },
-      { $sort: { revenue: -1 } },
       {
         $project: {
           _id: 0,
@@ -125,19 +131,14 @@ exports.getTopProducts = async (req, res) => {
           quantity: 1,
           revenue: { $round: ["$revenue", 2] }
         }
-      }
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: 10 }
     ]);
 
-    const data = rows.map(r => ({ 
-      productName: r.productName, 
-      quantity: r.quantity, 
-      revenue: r.revenue.toFixed(2) 
-    }));
-
-    res.json(data);
+    res.json(topProducts);
   } catch (err) {
-    console.error("Top products report error:", err);
-    res.status(500).json({ message: "Error fetching top products", error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch top products" });
   }
 };
-//
