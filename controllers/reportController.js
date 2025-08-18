@@ -102,19 +102,20 @@ exports.getTopProducts = async (req, res) => {
     const topProducts = await Sale.aggregate([
       { $unwind: "$items" },
       {
-        $group: {
-          _id: "$items.product",
-          quantity: { $sum: "$items.quantity" },
-          revenue: {
-            $sum: {
-              $multiply: [
-                "$items.quantity",
-                { $subtract: ["$items.priceAtSale", "$items.discountAmount"] }
-              ]
-            }
-          }
-        }
-      },
+  $group: {
+    _id: "$items.product",
+    quantity: { $sum: "$items.quantity" },
+    revenue: {
+      $sum: {
+        $subtract: [
+          { $multiply: ["$items.quantity", "$items.priceAtSale"] },
+          "$items.discountAmount"
+        ]
+      }
+    }
+  }
+}
+,
       {
         $lookup: {
           from: "products",
