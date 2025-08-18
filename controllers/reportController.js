@@ -94,7 +94,7 @@ exports.getMonthlyReport = async (req, res) => {
   }
 };//
 // get top products
-const getTopProducts = async (req, res) => {
+exports.getTopProducts = async (req, res) => {
   try {
     const db = await getDbForUser(req.user); 
     const Sale = db.models.Sale;
@@ -138,7 +138,7 @@ const getTopProducts = async (req, res) => {
 
     res.json(topProducts);
   } catch (err) {
-    console.error(err);
+    console.error("Top products error:", err);
     res.status(500).json({ error: "Failed to fetch top products" });
   }
 };
