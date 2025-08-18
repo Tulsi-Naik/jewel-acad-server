@@ -19,4 +19,4 @@ productSchema.post('save', async function(doc, next) {
   next();
 });
 
-module.exports = productSchema;  // ⚠️ Export schema only, not the model
+module.exports = productSchema;  // 

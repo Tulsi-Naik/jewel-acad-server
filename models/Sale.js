@@ -7,6 +7,8 @@ const saleSchema = new mongoose.Schema({
     {
       product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
       quantity: { type: Number, required: true },
+      //for top product report page
+       priceAtSale: { type: Number },
       discount: { type: Number, default: 0 },
       discountAmount: { type: Number, default: 0 }
     }
