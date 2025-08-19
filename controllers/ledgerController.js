@@ -3,7 +3,7 @@ const getDbForUser = require('../utils/getDbForUser');
 const ledgerSchema = require('../models/LedgerSchema');
 const customerSchema = require('../models/Customer'); // schema only
 const productSchema = require('../models/Product');   // schema only
-const saleSchema = require('../models/Sale');         // schema only
+const { schema: saleSchema } = require('../models/Sale');
 
 // Get all ledger entries (flat)
 exports.getLedger = async (req, res) => {
