@@ -1,3 +1,6 @@
+//controllers/salesController.js
+const getDbForUser = require('../utils/getDbForUser');
+
 exports.recordSale = async (req, res) => {
   let session;
   try {
