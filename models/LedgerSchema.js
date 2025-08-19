@@ -38,4 +38,4 @@ ledgerSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = ledgerSchema; // <-- export only schema, NOT model
+module.exports = ledgerSchema; // 

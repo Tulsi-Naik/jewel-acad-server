@@ -1,6 +1,6 @@
 const getDbForUser = require('../utils/getDbForUser');
-const productSchema = require('../models/Product').schema;
-const stockMovementSchema = require('../models/StockMovement').schema;
+const productSchema = require('../models/Product');
+const stockMovementSchema = require('../models/StockMovement');
 
 exports.getProducts = async (req, res) => {
   try {

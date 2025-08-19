@@ -1,10 +1,9 @@
 // controllers/ledgerController.js
 const getDbForUser = require('../utils/getDbForUser');
 const ledgerSchema = require('../models/LedgerSchema');
-const customerSchema = require('../models/Customer'); // schema only
-const productSchema = require('../models/Product');   // schema only
-const { schema: saleSchema } = require('../models/Sale');
-
+const customerSchema = require('../models/Customer'); // 
+const productSchema = require('../models/Product');   // 
+const saleSchema = require('../models/Sale');
 // Get all ledger entries (flat)
 exports.getLedger = async (req, res) => {
   try {
