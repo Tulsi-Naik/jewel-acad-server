@@ -1,6 +1,7 @@
 //controllers/reportController.js
 const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale');
+const productSchema = require('../models/Product');
 
 // Daily report: [{ date: "yyyy-MM-dd", total: "123.45" }]
 exports.getDailyReport = async (req, res) => {
