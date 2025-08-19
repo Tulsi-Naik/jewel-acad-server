@@ -1,7 +1,6 @@
 //controllers/reportController.js
 const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale');
-const productSchema = require('../models/Product');
 
 // Daily report: [{ date: "yyyy-MM-dd", total: "123.45" }]
 exports.getDailyReport = async (req, res) => {
@@ -189,5 +188,41 @@ exports.getSlowProducts = async (req, res) => {
   } catch (err) {
     console.error("Slow products error:", err);
     res.status(500).json({ error: "Failed to fetch slow products" });
+  }
+};
+exports.getCustomerReport = async (req, res) => {
+  try {
+    const db = await getDbForUser(req.user);
+    const Sale = db.models.Sale || db.model('Sale', require('../models/Sale'));
+    const Customer = db.models.Customer || db.model('Customer', require('../models/Customer'));
+
+    const report = await Sale.aggregate([
+      { $group: {
+          _id: "$customer",
+          totalOrders: { $sum: 1 },
+          totalAmount: { $sum: "$totalAmount" },
+          lastPurchase: { $max: "$createdAt" }
+      }},
+      { $lookup: {
+          from: "customers",
+          localField: "_id",
+          foreignField: "_id",
+          as: "customer"
+      }},
+      { $unwind: "$customer" },
+      { $project: {
+          _id: 1,
+          name: "$customer.name",
+          contact: "$customer.contact",
+          totalOrders: 1,
+          totalAmount: 1,
+          lastPurchase: 1
+      }}
+    ]);
+
+    res.json(report);
+  } catch (err) {
+    console.error("Customer report error:", err);
+    res.status(500).json({ error: "Failed to fetch customer report" });
   }
 };
