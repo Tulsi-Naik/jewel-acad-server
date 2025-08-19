@@ -9,5 +9,6 @@ router.get('/monthly', controller.getMonthlyReport);
 router.get('/top-products', controller.getTopProducts);
 router.get('/slow-products', controller.getSlowProducts);
 router.get('/customers', controller.getCustomerReport);
+router.get('/stock', controller.getStockReport);
 
 module.exports = router;

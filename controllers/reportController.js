@@ -1,6 +1,7 @@
 //controllers/reportController.js
 const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale');
+const Product = require('../models/Product');
 
 // Daily report: [{ date: "yyyy-MM-dd", total: "123.45" }]
 exports.getDailyReport = async (req, res) => {
@@ -224,5 +225,28 @@ exports.getCustomerReport = async (req, res) => {
   } catch (err) {
     console.error("Customer report error:", err);
     res.status(500).json({ error: "Failed to fetch customer report" });
+  }
+};
+
+
+exports.getStockReport = async (req, res) => {
+  try {
+    const db = await getDbForUser(req.user); // ensures vendor-specific DB
+    const ProductModel = db.models.Product || db.model('Product', Product);
+
+    const products = await ProductModel.find();
+
+    const data = products.map(p => ({
+      name: p.name,
+      quantity: p.quantity,
+      price: p.price,
+      totalValue: p.quantity * p.price
+    }));
+
+    res.json(data);
+
+  } catch (err) {
+    console.error('Stock report error:', err);
+    res.status(500).json({ error: 'Failed to fetch stock report' });
   }
 };
