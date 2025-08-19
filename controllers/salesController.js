@@ -1,5 +1,6 @@
 //controllers/salesController.js
 const getDbForUser = require('../utils/getDbForUser');
+const { schema: saleSchema } = require('../models/Sale');
 
 exports.recordSale = async (req, res) => {
   let session;
