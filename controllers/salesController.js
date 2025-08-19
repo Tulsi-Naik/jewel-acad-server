@@ -60,14 +60,21 @@ exports.recordSale = async (req, res) => {
     // Sync ledger
     let ledger = await Ledger.findOne({ customer }).session(session);
    const ledgerProducts = processedItems
-  .filter(i => i.product && i.quantity > 0)        // remove invalid items
-  .map(i => ({
-    product: i.product,
-    quantity: i.quantity,
-    price: i.priceAtSale || 0,                     // fallback to 0 if missing
-    discount: i.discount || 0,
-    total: ((i.priceAtSale || 0) - (i.discountAmount || 0)) * i.quantity
-  }));
+  .filter(i => i.product && i.quantity > 0)         // remove invalid items
+  .map(i => {
+    const price = Number(i.priceAtSale || 0);      // ensure number
+    const discountAmount = Number(i.discountAmount || 0);
+    const total = (price - discountAmount) * i.quantity;
+
+    return {
+      product: i.product,
+      quantity: i.quantity,
+      price,
+      discount: Number(i.discount || 0),
+      total
+    };
+  });
+
 
 
     if (ledger) {
