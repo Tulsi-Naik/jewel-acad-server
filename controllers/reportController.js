@@ -2,7 +2,7 @@
 const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale');
 const Product = require('../models/Product');
-
+const Ledger = require('../models/LedgerSchema');
 // Daily report: [{ date: "yyyy-MM-dd", total: "123.45" }]
 exports.getDailyReport = async (req, res) => {
   try {
@@ -248,5 +248,34 @@ exports.getStockReport = async (req, res) => {
   } catch (err) {
     console.error('Stock report error:', err);
     res.status(500).json({ error: 'Failed to fetch stock report' });
+  }
+};
+
+exports.getOutstandingLedger = async (req, res) => {
+  try {
+    const db = await getDbForUser(req.user); // vendor-specific DB
+    const LedgerModel = db.models.Ledger || db.model('Ledger', Ledger);
+
+    // Only include Partial or Unpaid ledgers
+    const ledgers = await LedgerModel.find({ status: { $in: ['Partial', 'Unpaid'] } })
+      .populate('customer', 'name contact') // get customer info
+      .populate('products.product', 'name'); // optional, product names
+
+    const data = ledgers.map(l => ({
+      invoiceId: l._id,
+      customerName: l.customer.name,
+      contact: l.customer.contact,
+      totalAmount: l.total,
+      paidAmount: l.paidAmount,
+      remainingAmount: l.remainingAmount,
+      status: l.status,
+      date: l.createdAt.toISOString().split('T')[0]
+    }));
+
+    res.json(data);
+
+  } catch (err) {
+    console.error('Outstanding ledger error:', err);
+    res.status(500).json({ error: 'Failed to fetch outstanding ledger' });
   }
 };
