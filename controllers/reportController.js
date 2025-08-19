@@ -144,3 +144,49 @@ exports.getTopProducts = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch top products" });
   }
 };
+// get slow products
+exports.getSlowProducts = async (req, res) => {
+  try {
+    const db = await getDbForUser(req.user);
+    const Sale = db.models.Sale || db.model('Sale', saleSchema);
+    const Product = db.models.Product || db.model('Product', require('../models/Product'));
+
+    const { start, end, limit = 10 } = req.query;
+    if (!start || !end) {
+      return res.status(400).json({ message: 'Start and end date are required.' });
+    }
+
+    const startDate = new Date(`${start}T00:00:00+05:30`);
+    const endDate = new Date(`${end}T23:59:59.999+05:30`);
+
+    // Aggregate sold quantity per product
+    const salesAgg = await Sale.aggregate([
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.product",
+          soldQty: { $sum: "$items.quantity" }
+        }
+      }
+    ]);
+
+    const soldMap = new Map();
+    salesAgg.forEach(p => soldMap.set(p._id.toString(), p.soldQty));
+
+    // Fetch all products
+    const allProducts = await Product.find();
+
+    // Filter slow products
+    const slowProducts = allProducts
+      .filter(p => !soldMap.has(p._id.toString()) || soldMap.get(p._id.toString()) < 2)
+      .slice(0, limit)
+      .map(p => ({ productName: p.name }));
+
+    res.json(slowProducts);
+
+  } catch (err) {
+    console.error("Slow products error:", err);
+    res.status(500).json({ error: "Failed to fetch slow products" });
+  }
+};

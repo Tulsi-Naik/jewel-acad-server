@@ -7,5 +7,6 @@ const controller = require('../controllers/reportController');
 router.get('/daily', controller.getDailyReport);
 router.get('/monthly', controller.getMonthlyReport);
 router.get('/top-products', controller.getTopProducts);
+router.get('/slow-products', controller.getSlowProducts);
 
 module.exports = router;
