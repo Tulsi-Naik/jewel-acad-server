@@ -5,7 +5,7 @@ const stockMovementSchema = require('../models/StockMovement');
 exports.getProducts = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Product = db.model('Product', productSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
     const products = await Product.find();
     res.json(products);
   } catch (err) {
@@ -17,7 +17,7 @@ exports.getProducts = async (req, res) => {
 exports.getProductByBarcode = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Product = db.model('Product', productSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
     const product = await Product.findOne({ barcode: req.params.barcode });
     if (!product) return res.status(404).json({ message: 'not found' });
     res.json(product);
@@ -29,7 +29,7 @@ exports.getProductByBarcode = async (req, res) => {
 exports.addProduct = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Product = db.model('Product', productSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
     const product = new Product(req.body);
     const saved = await product.save();
     res.status(201).json(saved);
@@ -42,7 +42,7 @@ exports.addProduct = async (req, res) => {
 exports.updateStock = async (req, res) => {
   try {
 const db = getDbForUser(req.user);
-const Product = db.model('Product', productSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
 const product = await Product.findById(req.params.id);
     product.quantity += Number(req.body.quantity);
     await product.save();
@@ -54,8 +54,8 @@ const product = await Product.findById(req.params.id);
 exports.stockIn = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Product = db.model('Product', productSchema);
-    const StockMovement = db.model('StockMovement', stockMovementSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
+const StockMovement = db.models.StockMovement || db.model('StockMovement', stockMovementSchema);
 
     const product = await Product.findById(req.params.id);
     product.quantity += req.body.amount;
@@ -77,8 +77,8 @@ exports.stockIn = async (req, res) => {
 exports.stockOut = async (req, res) => {
   try {
     const db = getDbForUser(req.user);
-    const Product = db.model('Product', productSchema);
-    const StockMovement = db.model('StockMovement', stockMovementSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
+const StockMovement = db.models.StockMovement || db.model('StockMovement', stockMovementSchema);
 
     const product = await Product.findById(req.params.id);
     product.quantity -= req.body.amount;
@@ -105,7 +105,7 @@ exports.stockOut = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
 const db = getDbForUser(req.user);
-const Product = db.model('Product', productSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
 const product = await Product.findById(req.params.id);
     if (product) {
       product.name = req.body.name ?? product.name;
@@ -124,7 +124,7 @@ const product = await Product.findById(req.params.id);
 exports.deleteProduct = async (req, res) => {
   try {
 const db = getDbForUser(req.user);
-const Product = db.model('Product', productSchema);
+const Product = db.models.Product || db.model('Product', productSchema);
 const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "not found" });
@@ -139,7 +139,7 @@ exports.getStockHistory = async (req, res) => {
     console.log('📦 Stock history route hit for product:', req.params.id);
 
     const db = getDbForUser(req.user);
-    const StockMovement = db.models.StockMovement || db.model('StockMovement', stockMovementSchema);
+const StockMovement = db.models.StockMovement || db.model('StockMovement', stockMovementSchema);
 
     const history = await StockMovement.find({ productId: req.params.id }).sort({ date: -1 });
     res.json(history);

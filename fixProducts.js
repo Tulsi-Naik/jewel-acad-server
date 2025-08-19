@@ -1,8 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const getDbForUser = require('./utils/getDbForUser');
-const ProductModel = require('./models/Product');
-
+const { schema: productSchema } = require('../models/Product');
 const user = {
   username: 'alankrut',
   role: 'vendor',

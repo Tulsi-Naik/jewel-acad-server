@@ -8,10 +8,9 @@ const saleSchema = require('../models/Sale');
 exports.getLedger = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
-    const Customer = db.models['Customer'] || db.model('Customer', customerSchema);
-    const Product = db.models['Product'] || db.model('Product', productSchema);
-    const Sale = db.models['Sale'] || db.model('Sale', saleSchema);
+const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);   
+const Customer = db.models.Customer || db.model('Customer', customerSchema);    const Product = db.models['Product'] || db.model('Product', productSchema);
+const Sale = db.models.Sale || db.model('Sale', saleSchema);
 
     const data = await Ledger.find()
       .populate('customer')
@@ -30,8 +29,7 @@ exports.getLedger = async (req, res) => {
 exports.syncLedger = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
-
+const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
     const { customer, sale, total, products, markAsPaid = false } = req.body;
     if (!customer || !products || total == null) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -80,8 +78,7 @@ exports.syncLedger = async (req, res) => {
 exports.markAsPaid = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
-
+const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
     const ledger = await Ledger.findById(req.params.id);
     if (!ledger) return res.status(404).json({ success: false, message: 'Ledger not found' });
 
@@ -103,8 +100,7 @@ exports.markAsPaid = async (req, res) => {
 exports.partialPay = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
-
+const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
     const { amount, method } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount' });
 
@@ -130,9 +126,8 @@ exports.partialPay = async (req, res) => {
 exports.getLedgerGroupedByCustomer = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-    const Ledger = db.models['Ledger'] || db.model('Ledger', ledgerSchema);
-    const Customer = db.models['Customer'] || db.model('Customer', customerSchema);
-
+const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
+const Customer = db.models.Customer || db.model('Customer', customerSchema);
     const grouped = await Ledger.aggregate([
       {
         $group: {
