@@ -97,7 +97,8 @@ exports.getMonthlyReport = async (req, res) => {
 exports.getTopProducts = async (req, res) => {
   try {
     const db = await getDbForUser(req.user); 
-    const Sale = db.models.Sale;
+   const Sale = db.models.Sale || db.model('Sale', saleSchema);
+
 
     const topProducts = await Sale.aggregate([
       { $unwind: "$items" },
