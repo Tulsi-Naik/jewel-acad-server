@@ -6,7 +6,7 @@ const ledgerSchema = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
   let session;
-  try {//
+  try {
     const db = getDbForUser(req.user);
 
     const Sale = db.models.Sale || db.model('Sale', saleSchema);
@@ -16,16 +16,15 @@ exports.recordSale = async (req, res) => {
     session = await db.startSession();
     session.startTransaction();
 
-const { customer, products } = req.body;
-
+    const { customer, products } = req.body;
     if (!customer) return res.status(400).json({ message: 'Customer is required.' });
-if (!Array.isArray(products) || products.length === 0)
-  return res.status(400).json({ message: 'Products are required.' });
+    if (!Array.isArray(products) || products.length === 0)
+      return res.status(400).json({ message: 'Products are required.' });
 
     let totalAmount = 0;
     const processedItems = [];
 
-    // Validate products & calculate total with priceAtSale
+    // Validate products & calculate total
     for (const item of products) {
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
@@ -49,42 +48,59 @@ if (!Array.isArray(products) || products.length === 0)
 
     // Deduct stock
     for (const item of products) {
-  await Product.findByIdAndUpdate(
-    item.product,
-    { $inc: { quantity: -item.quantity } },
-    { session }
-  );
-}
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantity: -item.quantity } },
+        { session }
+      );
+    }
 
-    // Save sale with enriched items
-const sale = new Sale({ customer, products: processedItems, totalAmount });
+    // Save sale
+    const sale = new Sale({ customer, products: processedItems, totalAmount });
     const savedSale = await sale.save({ session });
 
-    // Sync ledger
+    // Sync ledger safely
     let ledger = await Ledger.findOne({ customer }).session(session);
-   const ledgerProducts = processedItems
-  .filter(i => i.product && i.quantity > 0)         // remove invalid items
-  .map(i => {
-    const price = Number(i.priceAtSale || 0);      // ensure number
-    const discountAmount = Number(i.discountAmount || 0);
-    const total = (price - discountAmount) * i.quantity;
+    const ledgerProducts = processedItems
+      .filter(i => i.product && i.quantity > 0)
+      .map(i => {
+        const price = Number(i.priceAtSale || 0);
+        const discountAmount = Number(i.discountAmount || 0);
+        const total = (price - discountAmount) * i.quantity;
 
-    return {
-      product: i.product,
-      quantity: i.quantity,
-      price,
-      discount: Number(i.discount || 0),
-      total
-    };
-  });
-
-
+        return {
+          product: i.product,
+          quantity: i.quantity,
+          price,
+          discount: Number(i.discount || 0),
+          total
+        };
+      });
 
     if (ledger) {
-      ledger.sales.push(savedSale._id);
-      ledger.products.push(...ledgerProducts);
-      ledger.total += totalAmount;
+      // Prevent adding the same sale twice
+      if (!ledger.sales.includes(savedSale._id)) {
+        ledger.sales.push(savedSale._id);
+
+        // Merge ledger products safely
+        ledgerProducts.forEach(lp => {
+          const existingProduct = ledger.products.find(p => p.product.toString() === lp.product.toString());
+          if (existingProduct) {
+            // Update quantity & total if already exists
+            existingProduct.quantity += lp.quantity;
+            existingProduct.total += lp.total;
+          } else {
+            ledger.products.push(lp);
+          }
+        });
+
+        ledger.total += totalAmount;
+      } else {
+        // Sale already in ledger, skip adding
+        console.log(`Sale ${savedSale._id} already exists in ledger, skipping duplicate`);
+      }
     } else {
+      // Create new ledger
       ledger = new Ledger({
         customer,
         sales: [savedSale._id],
