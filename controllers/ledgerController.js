@@ -151,7 +151,7 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
     const Customer = db.models.Customer || db.model('Customer', customerSchema);
 
     const grouped = await Ledger.aggregate([
-      // Join with customer info
+      // Join customer info
       {
         $lookup: {
           from: 'customers',
@@ -162,36 +162,34 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
       },
       { $unwind: '$customerInfo' },
 
-      // Sort ledger by creation date (latest first)
-      { $sort: { createdAt: -1 } },
-
       // Group by customer
       {
         $group: {
           _id: '$customer',
           customer: { $first: '$customerInfo' },
+          totalAmount: { $sum: '$total' },
           totalPaid: { $sum: '$paidAmount' },
-          totalRemaining: { $sum: { $subtract: ['$total', '$paidAmount'] } },
-          entries: {
+          ledgers: {
             $push: {
               ledgerId: '$_id',
-              date: '$createdAt',
+              createdAt: '$createdAt',
               products: '$products',
               total: '$total',
               paidAmount: '$paidAmount',
-              remaining: { $subtract: ['$total', '$paidAmount'] }
+              payments: '$payments'
             }
           }
         }
       },
 
-      // Sort entries by date descending per customer
+      // Sort ledgers for each customer by date descending
       {
         $project: {
           customer: 1,
+          totalAmount: 1,
           totalPaid: 1,
-          totalRemaining: 1,
-          entries: { $sortArray: { input: '$entries', sortBy: { date: -1 } } }
+          totalUnpaid: { $subtract: ['$totalAmount', '$totalPaid'] },
+          ledgers: { $sortArray: { input: '$ledgers', sortBy: { createdAt: -1 } } }
         }
       }
     ]);
@@ -202,5 +200,6 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching grouped ledger', error: err.message });
   }
 };
+
 
 
