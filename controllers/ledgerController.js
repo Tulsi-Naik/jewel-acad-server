@@ -162,7 +162,7 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
       },
       { $unwind: '$customerInfo' },
 
-      // Sort ledger by creation date
+      // Sort ledger by creation date (latest first)
       { $sort: { createdAt: -1 } },
 
       // Group by customer
@@ -170,28 +170,28 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
         $group: {
           _id: '$customer',
           customer: { $first: '$customerInfo' },
-          totalAmount: { $sum: '$total' },
           totalPaid: { $sum: '$paidAmount' },
-          ledgers: { $push: '$$ROOT' } // keep original ledger docs
+          totalRemaining: { $sum: { $subtract: ['$total', '$paidAmount'] } },
+          entries: {
+            $push: {
+              ledgerId: '$_id',
+              date: '$createdAt',
+              products: '$products',
+              total: '$total',
+              paidAmount: '$paidAmount',
+              remaining: { $subtract: ['$total', '$paidAmount'] }
+            }
+          }
         }
       },
 
-      // Project product-level details per ledger
+      // Sort entries by date descending per customer
       {
         $project: {
           customer: 1,
-          totalAmount: 1,
           totalPaid: 1,
-          totalUnpaid: { $subtract: ['$totalAmount', '$totalPaid'] },
-          productHistory: {
-            $reduce: {
-              input: '$ledgers',
-              initialValue: [],
-              in: { $concatArrays: ['$$value', '$$this.products'] }
-            }
-          },
-          ledgerIds: { $map: { input: '$ledgers', as: 'l', in: '$$l._id' } },
-          ledgerDates: { $map: { input: '$ledgers', as: 'l', in: '$$l.createdAt' } }
+          totalRemaining: 1,
+          entries: { $sortArray: { input: '$entries', sortBy: { date: -1 } } }
         }
       }
     ]);
@@ -202,4 +202,5 @@ exports.getLedgerGroupedByCustomer = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching grouped ledger', error: err.message });
   }
 };
+
 
