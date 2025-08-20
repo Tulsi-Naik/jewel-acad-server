@@ -25,8 +25,8 @@ const Sale = db.models.Sale || db.model('Sale', saleSchema);
   }
 };
 
-// Sync ledger (create or update)
 
+// Sync ledger (create a new ledger per sale)
 exports.syncLedger = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
@@ -38,16 +38,14 @@ exports.syncLedger = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    // Find existing ledger for this customer
-    let ledger = await Ledger.findOne({ customer });
-
+    // Prepare product entries
     const productEntries = products.map(p => ({
       product: p.product,
       quantity: p.quantity || 1,
       price: p.price || 0,
       discount: p.discount || 0,
       total: p.total || (p.price * (p.quantity || 1) - (p.discount || 0)),
-      date: new Date() // track per-entry timestamp
+      date: new Date() // timestamp for this sale
     }));
 
     const paidAmountToAdd = markAsPaid ? Number(total) : 0;
@@ -55,36 +53,17 @@ exports.syncLedger = async (req, res) => {
       ? [{ amount: paidAmountToAdd, method: 'cash', date: new Date() }]
       : [];
 
-    if (ledger) {
-      // Prevent duplicate sale
-      if (sale && !ledger.sales.includes(sale)) {
-        ledger.sales.push(sale);
-      }
+    // Create a new ledger document for this sale
+    const ledger = new Ledger({
+      customer,
+      sales: sale ? [sale] : [],
+      products: productEntries,
+      total: Number(total),
+      paidAmount: paidAmountToAdd,
+      payments: paymentsArray
+    });
 
-      // Append new product entries (full history preserved)
-      ledger.products.push(...productEntries);
-
-      // Update totals
-      ledger.total += Number(total);
-      ledger.paidAmount += paidAmountToAdd;
-      if (markAsPaid) {
-        ledger.payments.push(...paymentsArray);
-      }
-
-      await ledger.save();
-    } else {
-      // Create new ledger for customer
-      ledger = new Ledger({
-        customer,
-        sales: sale ? [sale] : [],
-        products: productEntries,
-        total: Number(total),
-        paidAmount: paidAmountToAdd,
-        payments: paymentsArray
-      });
-
-      await ledger.save();
-    }
+    await ledger.save();
 
     res.status(201).json({ success: true, ledger });
   } catch (err) {
@@ -92,6 +71,7 @@ exports.syncLedger = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
 
 
 
