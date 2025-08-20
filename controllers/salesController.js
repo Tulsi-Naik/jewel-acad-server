@@ -108,4 +108,3 @@ const sale = new Sale({ customer, products: processedItems, totalAmount });
     if (session) session.endSession();
   }
 };
-//
