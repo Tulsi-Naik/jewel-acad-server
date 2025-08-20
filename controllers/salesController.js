@@ -6,7 +6,7 @@ const ledgerSchema = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
   let session;
-  try {
+  try {//
     const db = getDbForUser(req.user);
 
     const Sale = db.models.Sale || db.model('Sale', saleSchema);
