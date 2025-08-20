@@ -1,6 +1,8 @@
 //controllers/salesController.js
 const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale');
+const productSchema = require('../models/Product');
+const ledgerSchema = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
   let session;
@@ -14,16 +16,17 @@ exports.recordSale = async (req, res) => {
     session = await db.startSession();
     session.startTransaction();
 
-    const { customer, items } = req.body;
+const { customer, products } = req.body;
 
     if (!customer) return res.status(400).json({ message: 'Customer is required.' });
-    if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'Items are required.' });
+if (!Array.isArray(products) || products.length === 0)
+  return res.status(400).json({ message: 'Products are required.' });
 
     let totalAmount = 0;
     const processedItems = [];
 
     // Validate products & calculate total with priceAtSale
-    for (const item of items) {
+    for (const item of products) {
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
       if (item.quantity <= 0) throw new Error(`Invalid quantity for ${product.name}`);
@@ -45,16 +48,16 @@ exports.recordSale = async (req, res) => {
     }
 
     // Deduct stock
-    for (const item of items) {
-      await Product.findByIdAndUpdate(
-        item.product,
-        { $inc: { quantity: -item.quantity } },
-        { session }
-      );
-    }
+    for (const item of products) {
+  await Product.findByIdAndUpdate(
+    item.product,
+    { $inc: { quantity: -item.quantity } },
+    { session }
+  );
+}
 
     // Save sale with enriched items
-    const sale = new Sale({ customer, items: processedItems, totalAmount });
+const sale = new Sale({ customer, products: processedItems, totalAmount });
     const savedSale = await sale.save({ session });
 
     // Sync ledger
