@@ -24,7 +24,7 @@ const Sale = db.models.Sale || db.model('Sale', saleSchema);
     res.status(500).json({ message: 'Failed to fetch ledger', error: err.message });
   }
 };
-
+//
 
 // Sync ledger (create a new ledger per sale)
 exports.syncLedger = async (req, res) => {
