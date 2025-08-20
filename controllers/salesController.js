@@ -1,8 +1,7 @@
-//controllers/salesController.js
+// controllers/salesController.js
 const getDbForUser = require('../utils/getDbForUser');
 const saleSchema = require('../models/Sale');
 const productSchema = require('../models/Product');
-const ledgerSchema = require('../models/LedgerSchema');
 
 exports.recordSale = async (req, res) => {
   let session;
@@ -11,7 +10,6 @@ exports.recordSale = async (req, res) => {
 
     const Sale = db.models.Sale || db.model('Sale', saleSchema);
     const Product = db.models.Product || db.model('Product', productSchema);
-    const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
 
     session = await db.startSession();
     session.startTransaction();
@@ -55,65 +53,13 @@ exports.recordSale = async (req, res) => {
       );
     }
 
-    // Save sale
+    // Save sale ONLY
     const sale = new Sale({ customer, products: processedItems, totalAmount });
     const savedSale = await sale.save({ session });
 
-    // Sync ledger safely
-    let ledger = await Ledger.findOne({ customer }).session(session);
-    const ledgerProducts = processedItems
-      .filter(i => i.product && i.quantity > 0)
-      .map(i => {
-        const price = Number(i.priceAtSale || 0);
-        const discountAmount = Number(i.discountAmount || 0);
-        const total = (price - discountAmount) * i.quantity;
-
-        return {
-          product: i.product,
-          quantity: i.quantity,
-          price,
-          discount: Number(i.discount || 0),
-          total
-        };
-      });
-
-    if (ledger) {
-      // Prevent adding the same sale twice
-      if (!ledger.sales.includes(savedSale._id)) {
-        ledger.sales.push(savedSale._id);
-
-        // Merge ledger products safely
-        ledgerProducts.forEach(lp => {
-          const existingProduct = ledger.products.find(p => p.product.toString() === lp.product.toString());
-          if (existingProduct) {
-            // Update quantity & total if already exists
-            existingProduct.quantity += lp.quantity;
-            existingProduct.total += lp.total;
-          } else {
-            ledger.products.push(lp);
-          }
-        });
-
-        ledger.total += totalAmount;
-      } else {
-        // Sale already in ledger, skip adding
-        console.log(`Sale ${savedSale._id} already exists in ledger, skipping duplicate`);
-      }
-    } else {
-      // Create new ledger
-      ledger = new Ledger({
-        customer,
-        sales: [savedSale._id],
-        products: ledgerProducts,
-        total: totalAmount,
-        paidAmount: 0,
-        payments: []
-      });
-    }
-
-    await ledger.save({ session });
     await session.commitTransaction();
 
+    // Return the saved sale. Ledger is NOT touched here.
     res.status(201).json(savedSale);
 
   } catch (err) {
