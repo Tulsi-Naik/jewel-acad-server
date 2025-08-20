@@ -26,6 +26,7 @@ const Sale = db.models.Sale || db.model('Sale', saleSchema);
 };
 
 // Sync ledger (create or update)
+
 exports.syncLedger = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
@@ -37,37 +38,61 @@ exports.syncLedger = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    // Determine paid amount and payments array
+    // Find existing ledger for this customer
+    let ledger = await Ledger.findOne({ customer });
+
+    const productEntries = products.map(p => ({
+      product: p.product,
+      quantity: p.quantity || 1,
+      price: p.price || 0,
+      discount: p.discount || 0,
+      total: p.total || (p.price * (p.quantity || 1) - (p.discount || 0)),
+      date: new Date() // track per-entry timestamp
+    }));
+
     const paidAmountToAdd = markAsPaid ? Number(total) : 0;
     const paymentsArray = markAsPaid
       ? [{ amount: paidAmountToAdd, method: 'cash', date: new Date() }]
       : [];
 
-    // Create a new ledger document for this sale
-    const ledger = new Ledger({
-      customer,
-      sales: sale ? [sale] : [],
-      products: products.map(p => ({
-        product: p.product,
-        quantity: p.quantity || 1,
-        price: p.price || 0,
-        discount: p.discount || 0,
-        total: p.total || (p.price * p.quantity - p.discount)
-      })),
-      total: Number(total),
-      paidAmount: paidAmountToAdd,
-      payments: paymentsArray
-    });
+    if (ledger) {
+      // Prevent duplicate sale
+      if (sale && !ledger.sales.includes(sale)) {
+        ledger.sales.push(sale);
+      }
 
-    await ledger.save();
+      // Append new product entries (full history preserved)
+      ledger.products.push(...productEntries);
+
+      // Update totals
+      ledger.total += Number(total);
+      ledger.paidAmount += paidAmountToAdd;
+      if (markAsPaid) {
+        ledger.payments.push(...paymentsArray);
+      }
+
+      await ledger.save();
+    } else {
+      // Create new ledger for customer
+      ledger = new Ledger({
+        customer,
+        sales: sale ? [sale] : [],
+        products: productEntries,
+        total: Number(total),
+        paidAmount: paidAmountToAdd,
+        payments: paymentsArray
+      });
+
+      await ledger.save();
+    }
 
     res.status(201).json({ success: true, ledger });
-
   } catch (err) {
     console.error('Sync ledger error:', err);
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
 
 
 // Mark full ledger as paid
@@ -118,40 +143,57 @@ const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
   }
 };
 
-// Ledger grouped by customer
+// Ledger grouped by customer with product-level history
 exports.getLedgerGroupedByCustomer = async (req, res) => {
   try {
     const db = await getDbForUser(req.user);
-const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
-const Customer = db.models.Customer || db.model('Customer', customerSchema);
+    const Ledger = db.models.Ledger || db.model('Ledger', ledgerSchema);
+    const Customer = db.models.Customer || db.model('Customer', customerSchema);
+
     const grouped = await Ledger.aggregate([
-      {
-        $group: {
-          _id: '$customer',
-          totalAmount: { $sum: '$total' },
-          totalPaid: { $sum: '$paidAmount' },
-          ledgers: { $push: '$$ROOT' }
-        }
-      },
+      // Join with customer info
       {
         $lookup: {
           from: 'customers',
-          localField: '_id',
+          localField: 'customer',
           foreignField: '_id',
           as: 'customerInfo'
         }
       },
       { $unwind: '$customerInfo' },
+
+      // Sort ledger by creation date
+      { $sort: { createdAt: -1 } },
+
+      // Group by customer
+      {
+        $group: {
+          _id: '$customer',
+          customer: { $first: '$customerInfo' },
+          totalAmount: { $sum: '$total' },
+          totalPaid: { $sum: '$paidAmount' },
+          ledgers: { $push: '$$ROOT' } // keep original ledger docs
+        }
+      },
+
+      // Project product-level details per ledger
       {
         $project: {
-          customer: '$customerInfo',
+          customer: 1,
           totalAmount: 1,
           totalPaid: 1,
           totalUnpaid: { $subtract: ['$totalAmount', '$totalPaid'] },
-          ledgers: 1
+          productHistory: {
+            $reduce: {
+              input: '$ledgers',
+              initialValue: [],
+              in: { $concatArrays: ['$$value', '$$this.products'] }
+            }
+          },
+          ledgerIds: { $map: { input: '$ledgers', as: 'l', in: '$$l._id' } },
+          ledgerDates: { $map: { input: '$ledgers', as: 'l', in: '$$l.createdAt' } }
         }
-      },
-      { $sort: { 'customer.name': 1 } }
+      }
     ]);
 
     res.json({ success: true, grouped });
@@ -160,3 +202,4 @@ const Customer = db.models.Customer || db.model('Customer', customerSchema);
     res.status(500).json({ success: false, message: 'Error fetching grouped ledger', error: err.message });
   }
 };
+
