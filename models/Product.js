@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  category: { type: String, default: "" }, // Ring, Necklace, etc.
   quantity: { type: Number, required: true },
   price: { type: Number, required: true },
   barcode: { type: String },
-  weight: { type: String },
-  expiryDate: { type: Date },
-  manufacturingDate: { type: Date }
+  weight: { type: Number, default: 0 }, // weight in grams
+  gst: { type: Number, default: 3 }     // GST percentage
 }, { timestamps: true });
 
 productSchema.post('save', async function(doc, next) {
@@ -19,4 +19,5 @@ productSchema.post('save', async function(doc, next) {
   next();
 });
 
-module.exports = productSchema;  // 
+module.exports = productSchema;
+
